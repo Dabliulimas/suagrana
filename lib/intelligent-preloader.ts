@@ -270,7 +270,7 @@ class IntelligentPreloader {
     }
 
     // Detect connection speed
-    const connection = (navigator as any).connection;
+    const connection = typeof navigator !== 'undefined' ? (navigator as any).connection : null;
     let connectionType: "slow" | "fast" = "fast";
 
     if (connection) {

@@ -129,18 +129,18 @@ export function AdvancedPWASettings() {
     const status = {
       installed: window.matchMedia("(display-mode: standalone)").matches,
       serviceWorkerActive:
-        "serviceWorker" in navigator &&
+        typeof navigator !== 'undefined' && "serviceWorker" in navigator &&
         !!(await navigator.serviceWorker.getRegistration()),
       notificationPermission:
         "Notification" in window
           ? Notification.permission
           : ("denied" as NotificationPermission),
-      online: navigator.onLine,
+      online: typeof navigator !== 'undefined' ? navigator.onLine : true,
       cacheSize: 0,
     };
 
     // Estimate cache size
-    if ("storage" in navigator && "estimate" in navigator.storage) {
+    if (typeof navigator !== 'undefined' && "storage" in navigator && "estimate" in navigator.storage) {
       try {
         const estimate = await navigator.storage.estimate();
         status.cacheSize = estimate.usage || 0;
@@ -225,7 +225,7 @@ export function AdvancedPWASettings() {
 
   const registerBackgroundSync = () => {
     if (
-      "serviceWorker" in navigator &&
+      typeof navigator !== 'undefined' && "serviceWorker" in navigator &&
       "sync" in window.ServiceWorkerRegistration.prototype
     ) {
       navigator.serviceWorker.ready

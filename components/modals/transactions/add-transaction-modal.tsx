@@ -2289,7 +2289,7 @@ export function AddTransactionModal({
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (navigator.geolocation) {
+                      if (typeof navigator !== 'undefined' && navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(
                           (position) => {
                             const location = {

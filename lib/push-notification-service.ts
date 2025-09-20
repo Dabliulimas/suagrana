@@ -308,7 +308,7 @@ class PushNotificationService {
     if (!conditions) return true;
 
     // Check online status
-    if (conditions.onlineOnly && !navigator.onLine) {
+    if (conditions.onlineOnly && !(typeof navigator !== 'undefined' ? navigator.onLine : true)) {
       return false;
     }
 
@@ -445,7 +445,7 @@ class PushNotificationService {
   }
 
   async processQueuedNotifications(): Promise<void> {
-    if (!navigator.onLine || this.notificationQueue.length === 0) return;
+    if (!(typeof navigator !== 'undefined' ? navigator.onLine : true) || this.notificationQueue.length === 0) return;
 
     const queue = [...this.notificationQueue];
     this.notificationQueue = [];

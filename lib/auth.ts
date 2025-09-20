@@ -212,7 +212,7 @@ class AuthManager {
           action: "LOGIN_FAILED",
           details: { email, reason: "User not found" },
           ipAddress: this.getClientIP(),
-          userAgent: navigator.userAgent,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
           severity: "high",
         });
 
@@ -229,7 +229,7 @@ class AuthManager {
           userId: user.id,
           details: { email, reason: "Account locked" },
           ipAddress: this.getClientIP(),
-          userAgent: navigator.userAgent,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
           severity: "high",
         });
 
@@ -268,7 +268,7 @@ class AuthManager {
             attempts: user.loginAttempts,
           },
           ipAddress: this.getClientIP(),
-          userAgent: navigator.userAgent,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
           severity:
             user.loginAttempts >= this.MAX_LOGIN_ATTEMPTS ? "critical" : "high",
         });
@@ -292,7 +292,7 @@ class AuthManager {
             userId: user.id,
             details: { email, reason: "Invalid MFA code" },
             ipAddress: this.getClientIP(),
-            userAgent: navigator.userAgent,
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
             severity: "high",
           });
 
@@ -320,7 +320,7 @@ class AuthManager {
         userId: user.id,
         details: { email: user.email, mfaUsed: user.mfaEnabled },
         ipAddress: this.getClientIP(),
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
       });
 
       return { success: true, session, user };
@@ -341,7 +341,7 @@ class AuthManager {
         userId: session.userId,
         details: { sessionId },
         ipAddress: this.getClientIP(),
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
       });
     }
   }
@@ -400,7 +400,7 @@ class AuthManager {
         userId,
         details: {},
         ipAddress: this.getClientIP(),
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
       });
     }
 
@@ -445,7 +445,7 @@ class AuthManager {
       userId,
       details: { role, permissions },
       ipAddress: this.getClientIP(),
-      userAgent: navigator.userAgent,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
     });
   }
 

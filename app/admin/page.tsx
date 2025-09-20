@@ -55,7 +55,7 @@ export default function AdminPage() {
       id: `log_${Date.now()}`,
       action: 'logout',
       timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
       ip: 'localhost',
     });
     localStorage.setItem('sua-grana-admin-logs', JSON.stringify(accessLog));

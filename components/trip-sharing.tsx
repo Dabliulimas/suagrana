@@ -92,7 +92,7 @@ export function TripSharing({ trip, onUpdate }: TripSharingProps) {
 
   const copyToClipboard = async (text: string) => {
     try {
-      if (navigator.clipboard && window.isSecureContext) {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
         toast.success("Copiado para a área de transferência!");
       } else {

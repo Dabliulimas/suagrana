@@ -150,7 +150,7 @@ export class PrivacyManager {
       granted,
       timestamp: new Date().toISOString(),
       ipAddress: this.getClientIP(),
-      userAgent: navigator.userAgent,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
     };
 
     // DEPRECADO: localStorage será removido em favor do dataService para segurança

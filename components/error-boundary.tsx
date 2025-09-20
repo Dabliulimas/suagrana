@@ -55,7 +55,7 @@ function ModernErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) 
       const errorReport = {
         message: error.message,
         stack: error.stack,
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
         timestamp: new Date().toISOString(),
         url: window.location.href,
         type: errorType,

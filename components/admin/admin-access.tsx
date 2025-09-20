@@ -46,7 +46,7 @@ export function AdminAccess({ className }: AdminAccessProps) {
         id: `log_${Date.now()}`,
         action: 'login',
         timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
         ip: 'localhost', // Em produção seria obtido do servidor
       });
       localStorage.setItem('sua-grana-admin-logs', JSON.stringify(accessLog));
@@ -68,7 +68,7 @@ export function AdminAccess({ className }: AdminAccessProps) {
         id: `log_${Date.now()}`,
         action: 'failed_login',
         timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
         ip: 'localhost',
       });
       localStorage.setItem('sua-grana-admin-logs', JSON.stringify(accessLog));

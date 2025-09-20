@@ -277,7 +277,7 @@ const AutoPerformanceOptimizer: React.FC<{
     };
 
     // Listen for memory pressure events (if supported)
-    if ("memory" in navigator) {
+    if (typeof navigator !== 'undefined' && "memory" in navigator) {
       // @ts-ignore
       const memoryInfo = navigator.memory;
       if (
@@ -290,7 +290,7 @@ const AutoPerformanceOptimizer: React.FC<{
 
     // Fallback: monitor memory usage periodically
     const memoryInterval = setInterval(() => {
-      if ("memory" in navigator) {
+      if (typeof navigator !== 'undefined' && "memory" in navigator) {
         // @ts-ignore
         const memoryInfo = navigator.memory;
         if (

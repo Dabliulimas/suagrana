@@ -56,7 +56,7 @@ export function EnhancedHeader({
     const isMac =
       typeof window !== "undefined" &&
       typeof navigator !== "undefined" &&
-      navigator.platform?.toUpperCase().indexOf("MAC") >= 0;
+      navigator?.platform?.toUpperCase().indexOf("MAC") >= 0;
     setSearchShortcut(isMac ? "⌘K" : "Ctrl+K");
 
     // Global keyboard shortcut for search

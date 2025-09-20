@@ -85,7 +85,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
       // Load real system metrics
       const metrics = {
         cpu: performance.now() % 100, // Use performance timing as CPU indicator
-        memory: navigator.deviceMemory
+        memory: typeof navigator !== 'undefined' && navigator.deviceMemory
           ? (navigator.deviceMemory / 8) * 100
           : 50, // Device memory usage
         disk:
@@ -95,7 +95,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                 100,
               )
             : 10, // Storage usage
-        network: navigator.connection
+        network: typeof navigator !== 'undefined' && navigator.connection
           ? (navigator.connection.downlink / 10) * 100
           : 75, // Network speed
       };

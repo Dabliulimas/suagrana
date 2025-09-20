@@ -61,7 +61,7 @@ export function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
         id: `log_${Date.now()}`,
         action: 'admin_login',
         timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
         ip: 'localhost',
       });
       localStorage.setItem('sua-grana-admin-logs', JSON.stringify(accessLog));
@@ -82,7 +82,7 @@ export function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
         id: `log_${Date.now()}`,
         action: 'admin_failed_login',
         timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
         ip: 'localhost',
       });
       localStorage.setItem('sua-grana-admin-logs', JSON.stringify(accessLog));
@@ -99,7 +99,7 @@ export function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
       id: `log_${Date.now()}`,
       action: 'admin_logout',
       timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
       ip: 'localhost',
     });
     localStorage.setItem('sua-grana-admin-logs', JSON.stringify(accessLog));

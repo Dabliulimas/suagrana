@@ -15,7 +15,7 @@ import { logSyncManager } from "../utils/logger";
 export class SyncManager {
   private pendingOperations: PendingOperation[] = [];
   private syncStatus: SyncStatus = {
-    isOnline: navigator.onLine,
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     lastSync: null,
     pendingOperations: 0,
     syncInProgress: false,

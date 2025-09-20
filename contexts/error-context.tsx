@@ -129,7 +129,7 @@ export function ErrorProvider({ children }: { children: React.ReactNode }) {
         context: {
           ...context,
           stack: error.stack,
-          userAgent: navigator.userAgent,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
           url: window.location.href,
           timestamp: new Date().toISOString(),
         },

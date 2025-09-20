@@ -1,30 +1,30 @@
-// Prisma schema para SuaGrana com Neon PostgreSQL
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["relationJoins"]
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
+  id           String         @id @default(cuid())
+  email        String         @unique
   name         String
   avatar       String?
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
   accounts     Account[]
   budgets      Budget[]
+  categories   Category[]
   contacts     Contact[]
   goals        Goal[]
   investments  Investment[]
+  tags         Tag[]
   transactions Transaction[]
   settings     UserSettings[]
-  categories   Category[]
-  tags         Tag[]
 
   @@map("users")
 }
@@ -53,7 +53,7 @@ model Transaction {
   description        String
   amount             Decimal
   type               String
-  category           String        // Manter para compatibilidade
+  category           String
   date               DateTime
   notes              String?
   isShared           Boolean       @default(false) @map("is_shared")
@@ -63,11 +63,11 @@ model Transaction {
   parentId           String?       @map("parent_id")
   createdAt          DateTime      @default(now()) @map("created_at")
   updatedAt          DateTime      @updatedAt @map("updated_at")
+  account            Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryRef        Category?     @relation(fields: [categoryId], references: [id])
   parent             Transaction?  @relation("TransactionInstallments", fields: [parentId], references: [id])
   children           Transaction[] @relation("TransactionInstallments")
-  account            Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoryRef        Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tags               Tag[]         @relation("TransactionTags")
 
   @@map("transactions")
@@ -142,12 +142,11 @@ model Contact {
 model UserSettings {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // "income_settings", "categories", "tags", "family_members"
-  data      String   // Dados da configuração em formato JSON string
+  type      String
+  data      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
   @@map("user_settings")
@@ -157,17 +156,16 @@ model Category {
   id           String        @id @default(cuid())
   userId       String        @map("user_id")
   name         String
-  type         String        // "income", "expense", "transfer"
+  type         String
   color        String?
   icon         String?
   description  String?
   isActive     Boolean       @default(true) @map("is_active")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
-
+  budgets      Budget[]
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
-  budgets      Budget[]
 
   @@unique([userId, name, type])
   @@map("categories")
@@ -182,7 +180,6 @@ model Tag {
   isActive     Boolean       @default(true) @map("is_active")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
-
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[] @relation("TransactionTags")
 
@@ -195,17 +192,16 @@ model Budget {
   userId         String    @map("user_id")
   categoryId     String    @map("category_id")
   amount         Decimal
-  period         String    @default("monthly") // monthly, weekly, yearly
+  period         String    @default("monthly")
   startDate      DateTime? @map("start_date")
   endDate        DateTime? @map("end_date")
-  alertThreshold Int       @default(80) @map("alert_threshold") // Porcentagem para alerta
+  alertThreshold Int       @default(80) @map("alert_threshold")
   description    String?
   isActive       Boolean   @default(true) @map("is_active")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
-  
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category       Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, categoryId, period])
   @@map("budgets")

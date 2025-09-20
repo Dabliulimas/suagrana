@@ -238,13 +238,13 @@ export default function AdvancedReportsDashboard() {
   };
 
   const shareReport = () => {
-    if (navigator.share) {
+    if (typeof navigator !== 'undefined' && navigator.share) {
       navigator.share({
         title: 'Relatório Financeiro',
         text: 'Confira meu relatório financeiro',
         url: window.location.href
       });
-    } else {
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Link copiado para a área de transferência');
     }

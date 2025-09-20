@@ -22,7 +22,7 @@ export function PWAInstaller() {
 
   useEffect(() => {
     // Register service worker
-    if ("serviceWorker" in navigator) {
+    if (typeof navigator !== 'undefined' && "serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {

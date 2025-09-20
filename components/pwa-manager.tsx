@@ -212,7 +212,7 @@ export function PWAManager({ onInstallPrompt }: PWAManagerProps) {
   };
 
   const getInstallInstructions = () => {
-    const userAgent = navigator.userAgent.toLowerCase();
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : '';
 
     if (userAgent.includes("chrome") && !userAgent.includes("edg")) {
       return {
