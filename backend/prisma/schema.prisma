@@ -1,0 +1,392 @@
+// Enterprise Financial System Schema
+// Multi-tenant, Double-entry Bookkeeping, Audit Trail
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// MULTI-TENANCY & USERS
+// ============================================================================
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  settings  String?  // Tenant-specific settings (JSON string)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  userTenants     UserTenant[]
+  accounts        Account[]
+  categories      Category[]
+  transactions    Transaction[]
+  budgets         Budget[]
+  recurringRules  RecurringRule[]
+  auditEvents     AuditEvent[]
+  ledgers         Ledger[]
+  investments     Investment[]
+  dividends       Dividend[]
+  goals           Goal[]
+  contacts        Contact[]
+
+  @@map("tenants")
+}
+
+model UserTenant {
+  id       String @id @default(uuid())
+  userId   String @map("user_id")
+  tenantId String @map("tenant_id")
+  role     String @default("USER") // OWNER, ADMIN, USER, VIEWER
+  isActive Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@map("user_tenants")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  avatar    String?
+  isActive  Boolean  @default(true) @map("is_active")
+  lastLogin DateTime? @map("last_login")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  userTenants UserTenant[]
+  userProfile UserProfile?
+  createdTransactions Transaction[] @relation("TransactionCreator")
+  createdAuditEvents  AuditEvent[]  @relation("AuditEventActor")
+  investments Investment[]
+  goals       Goal[]
+  budgets     Budget[]
+  recurringRules RecurringRule[]
+  contacts    Contact[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  monthlyIncome     Decimal? @map("monthly_income")
+  emergencyReserve  Decimal? @map("emergency_reserve")
+  riskProfile       String?  @map("risk_profile")
+  financialGoals    String?  @map("financial_goals") // JSON string for financial goals
+  preferences       String?  @map("preferences")      // JSON string for preferences
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+// ============================================================================
+// LEDGER & ACCOUNTS (Double-Entry)
+// ============================================================================
+
+model Ledger {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  description String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  accounts Account[]
+
+  @@map("ledgers")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  type      String   // INCOME, EXPENSE, ASSET, LIABILITY, EQUITY
+  parentId  String?  @map("parent_id")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  tenant   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  entries  Entry[]
+  budgets  Budget[]
+  recurringRules RecurringRule[]
+
+  @@map("categories")
+}
+
+model Account {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  ledgerId    String?  @map("ledger_id")
+  name        String
+  type        String   // ASSET, LIABILITY, EQUITY, INCOME, EXPENSE
+  subtype     String?  // CHECKING, SAVINGS, CREDIT_CARD, CASH, etc.
+  currency    String   @default("BRL")
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ledger  Ledger? @relation(fields: [ledgerId], references: [id])
+  entries Entry[]
+  recurringRules RecurringRule[]
+
+  @@map("accounts")
+}
+
+// ============================================================================
+// TRANSACTIONS & DOUBLE-ENTRY
+// ============================================================================
+
+model Transaction {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  date        DateTime
+  description String
+  externalId  String?  @map("external_id") // For idempotency
+  reference   String?  // Invoice number, check number, etc.
+  status      String   @default("COMPLETED") // PENDING, COMPLETED, CANCELLED
+  tags        String?  // Array of tags (JSON string)
+  metadata    String?  // Additional metadata (JSON string)
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator   User    @relation("TransactionCreator", fields: [createdBy], references: [id])
+  entries   Entry[]
+  adjustments Transaction[] @relation("TransactionAdjustments")
+  originalTransaction Transaction? @relation("TransactionAdjustments", fields: [originalTransactionId], references: [id])
+  originalTransactionId String? @map("original_transaction_id")
+
+  @@unique([tenantId, externalId])
+  @@map("transactions")
+}
+
+model Entry {
+  id            String   @id @default(uuid())
+  transactionId String   @map("transaction_id")
+  accountId     String   @map("account_id")
+  categoryId    String?  @map("category_id")
+  debit         Decimal  @default(0)
+  credit        Decimal  @default(0)
+  description   String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relacionamentos
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account     Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category    Category?   @relation(fields: [categoryId], references: [id])
+
+  @@map("entries")
+}
+
+model Investment {
+  id            String          @id @default(cuid())
+  tenantId      String          @map("tenant_id")
+  userId        String          @map("user_id")
+  name          String
+  type          String          // InvestmentType
+  symbol        String?
+  quantity      Decimal
+  purchasePrice Decimal         @map("purchase_price")
+  currentPrice  Decimal?        @map("current_price")
+  purchaseDate  DateTime        @map("purchase_date")
+  maturityDate  DateTime?       @map("maturity_date")
+  status        String          @default("ACTIVE") // InvestmentStatus
+  broker        String?
+  fees          Decimal?        @default(0)
+  metadata      String?         // JSON string for metadata
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dividends Dividend[]
+
+  @@map("investments")
+}
+
+model Dividend {
+  id           String   @id @default(cuid())
+  tenantId     String   @map("tenant_id")
+  investmentId String   @map("investment_id")
+  amount       Decimal
+  paymentDate  DateTime @map("payment_date")
+  type         String   // JCP, Dividendo, etc.
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relacionamentos
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  investment Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+
+  @@map("dividends")
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  tenantId    String     @map("tenant_id")
+  userId      String     @map("user_id")
+  name        String
+  description String?
+  targetAmount Decimal   @map("target_amount")
+  currentAmount Decimal  @default(0) @map("current_amount")
+  targetDate  DateTime   @map("target_date")
+  category    String
+  priority    String     @default("MEDIUM") // GoalPriority
+  status      String     @default("ACTIVE") // GoalStatus
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+// Budget Management
+model Budget {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  userId      String   @map("user_id")
+  categoryId  String?  @map("category_id")
+  name        String
+  amount      Decimal
+  spent       Decimal  @default(0)
+  period      String   // monthly, yearly, weekly
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  isActive    Boolean  @default(true) @map("is_active")
+  alertThreshold Decimal? @map("alert_threshold") // percentage
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@map("budgets")
+}
+
+// Recurring Transaction Rules
+model RecurringRule {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  amount      Decimal
+  frequency   String   // daily, weekly, monthly, yearly
+  interval    Int      @default(1) // every X frequency
+  dayOfMonth  Int?     @map("day_of_month") // for monthly
+  dayOfWeek   Int?     @map("day_of_week")  // for weekly
+  startDate   DateTime @map("start_date")
+  endDate     DateTime? @map("end_date")
+  lastExecuted DateTime? @map("last_executed")
+  nextExecution DateTime @map("next_execution")
+  isActive    Boolean  @default(true) @map("is_active")
+  autoExecute Boolean  @default(false) @map("auto_execute")
+  
+  // Transaction template
+  accountId   String   @map("account_id")
+  categoryId  String   @map("category_id")
+  type        String   // income, expense, transfer
+  tags        String?  @default("")
+  metadata    String?  @default("{}")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("recurring_rules")
+}
+
+// Enhanced Audit Events
+model AuditEvent {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  userId      String?  @map("user_id")
+  entityType  String   @map("entity_type") // transaction, account, user, etc
+  entityId    String   @map("entity_id")
+  action      String   // create, update, delete, login, etc
+  oldValues   String?  @map("old_values")
+  newValues   String?  @map("new_values")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  sessionId   String?  @map("session_id")
+  severity    String   @default("info") // info, warning, error, critical
+  tags        String?  @default("")
+  metadata    String?  @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User?  @relation("AuditEventActor", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, action, createdAt])
+  @@map("audit_events")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  tenantId  String   @map("tenant_id")
+  userId    String   @map("user_id")
+  name      String
+  email     String?
+  phone     String?
+  category  String?  // family, friend, business, etc
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+// Note: SQLite doesn't support enums, so we use strings with comments indicating the valid values
+// Valid AccountType values: CHECKING, SAVINGS, INVESTMENT, CREDIT_CARD, CASH, OTHER
+// Valid TransactionType values: INCOME, EXPENSE, TRANSFER
+// Valid TransactionStatus values: PENDING, COMPLETED, CANCELLED
+// Valid InvestmentType values: STOCK, BOND, FUND, REAL_ESTATE, CRYPTO, OTHER
+// Valid InvestmentStatus values: ACTIVE, SOLD, MATURED
+// Valid GoalPriority values: LOW, MEDIUM, HIGH, CRITICAL
+// Valid GoalStatus values: ACTIVE, COMPLETED, PAUSED, CANCELLED

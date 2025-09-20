@@ -1,0 +1,124 @@
+import { Prisma } from "@prisma/client";
+
+// Tipos base do Prisma
+export
+export
+export
+export
+export
+export
+export
+
+// Tipos para criação (sem campos auto-gerados)
+export  Account,
+  "id" | "createdAt" | "updatedAt"
+>;
+export  Transaction,
+  "id" | "createdAt" | "updatedAt"
+>;
+export
+export  Investment,
+  "id" | "createdAt" | "updatedAt"
+>;
+export  Contact,
+  "id" | "createdAt" | "updatedAt"
+>;
+
+// Tipos para atualização
+export  Omit<Account, "id" | "userId" | "createdAt" | "updatedAt">
+>;
+export  Omit<Transaction, "id" | "userId" | "createdAt" | "updatedAt">
+>;
+export  Omit<Goal, "id" | "userId" | "createdAt" | "updatedAt">
+>;
+export  Omit<Investment, "id" | "userId" | "createdAt" | "updatedAt">
+>;
+
+// Tipos para queries com relacionamentos
+export  include: { account: true };
+}>;
+
+export  include: { dividends: true };
+}>;
+
+export  include: { transactions: true };
+}>;
+
+// Enums
+export const AccountType = {
+  CHECKING: "checking",
+  SAVINGS: "savings",
+  CREDIT: "credit",
+  INVESTMENT: "investment",
+} as const;
+
+export const TransactionType = {
+  INCOME: "income",
+  EXPENSE: "expense",
+  TRANSFER: "transfer",
+} as const;
+
+export const InvestmentType = {
+  STOCK: "stock",
+  FII: "fii",
+  TREASURY: "treasury",
+  CRYPTO: "crypto",
+  FUND: "fund",
+} as const;
+
+export const GoalPriority = {
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+} as const;
+
+export const GoalStatus = {
+  ACTIVE: "active",
+  COMPLETED: "completed",
+  PAUSED: "paused",
+} as const;
+
+// Tipos para estatísticas
+export interface MonthlyStats {
+  income: number;
+  expenses: number;
+  balance: number;
+  transactionCount: number;
+}
+
+export interface CategoryStats {
+  category: string;
+  amount: number;
+  percentage: number;
+  transactionCount: number;
+}
+
+export interface AccountBalance {
+  accountId: string;
+  accountName: string;
+  balance: number;
+}
+
+// Tipos para dashboard
+export interface DashboardData {
+  totalBalance: number;
+  monthlyStats: MonthlyStats;
+  categoryStats: CategoryStats[];
+  accountBalances: AccountBalance[];
+  recentTransactions: TransactionWithAccount[];
+  goalProgress: Goal[];
+}
+
+// Tipos para filtros
+export interface TransactionFilters {
+  accountId?: string;
+  category?: string;
+  startDate?: Date;
+  endDate?: Date;
+  search?: string;
+}
+
+export interface DateRange {
+  from: Date;
+  to: Date;
+}

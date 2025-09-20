@@ -1,0 +1,354 @@
+// This is your Prisma schema file for testing,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client-test"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./test.db"
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String   @unique
+  settings  String   @default("{}")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users       UserTenant[]
+  ledgers     Ledger[]
+  accounts    Account[]
+  categories  Category[]
+  transactions Transaction[]
+  entries     Entry[]
+  budgets     Budget[]
+  recurringRules RecurringRule[]
+  auditEvents AuditEvent[]
+  investments Investment[]
+  dividends   Dividend[]
+  goals       Goal[]
+  contacts    Contact[]
+
+  @@map("tenants")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenants             UserTenant[]
+  createdTransactions Transaction[] @relation("TransactionCreator")
+  createdAuditEvents  AuditEvent[]  @relation("AuditEventActor")
+  investments Investment[]
+  dividends   Dividend[]
+  goals       Goal[]
+  contacts    Contact[]
+
+  @@map("users")
+}
+
+model UserTenant {
+  id       String @id @default(cuid())
+  userId   String
+  tenantId String
+  role     String @default("user")
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@map("user_tenants")
+}
+
+model Ledger {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  code        String
+  type        String   // asset, liability, equity, revenue, expense
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  accounts Account[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, type])
+  @@map("ledgers")
+}
+
+model Account {
+  id          String   @id @default(cuid())
+  tenantId    String
+  ledgerId    String
+  name        String
+  code        String
+  type        String   // asset, liability, equity, revenue, expense
+  subtype     String   // current_asset, fixed_asset, current_liability, etc.
+  description String?
+  metadata    String   @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ledger  Ledger  @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  entries Entry[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, type])
+  @@index([ledgerId])
+  @@map("accounts")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  type        String   // income, expense, transfer
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, type])
+  @@map("categories")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  categoryId  String
+  type        String   // income, expense, transfer
+  amount      Float
+  description String
+  date        DateTime
+  status      String   @default("processed") // pending, processed, cancelled
+  reference   String?
+  tags        String   @default("[]")
+  metadata    String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User      @relation("TransactionCreator", fields: [userId], references: [id], onDelete: Cascade)
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  entries  Entry[]
+
+  @@index([tenantId, date])
+  @@index([tenantId, type])
+  @@index([tenantId, status])
+  @@index([userId])
+  @@index([categoryId])
+  @@map("transactions")
+}
+
+model Entry {
+  id            String   @id @default(cuid())
+  tenantId      String
+  transactionId String
+  accountId     String
+  type          String   // debit, credit
+  amount        Float
+  description   String
+  createdAt     DateTime @default(now())
+
+  // Relations
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account     Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, transactionId])
+  @@index([tenantId, accountId])
+  @@index([transactionId])
+  @@index([accountId])
+  @@map("entries")
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  amount      Float
+  period      String   // monthly, quarterly, yearly
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, period])
+  @@index([tenantId, startDate, endDate])
+  @@map("budgets")
+}
+
+model RecurringRule {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  frequency   String   // daily, weekly, monthly, yearly
+  interval    Int      @default(1)
+  dayOfWeek   Int?
+  dayOfMonth  Int?
+  monthOfYear Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, frequency])
+  @@map("recurring_rules")
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String?
+  action     String   // create, update, delete, login, logout
+  entityType String   // transaction, account, user, etc.
+  entityId   String?
+  oldValues  String?
+  newValues  String?
+  metadata   String   @default("{}")
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation("AuditEventActor", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, action])
+  @@index([tenantId, createdAt])
+  @@index([userId])
+  @@map("audit_events")
+}
+
+model Investment {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  symbol      String
+  name        String
+  type        String   // stock, bond, fund, crypto
+  quantity    Float
+  avgPrice    Float
+  currentPrice Float?
+  totalValue  Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dividends Dividend[]
+
+  @@index([tenantId, userId])
+  @@index([symbol])
+  @@map("investments")
+}
+
+model Dividend {
+  id           String   @id @default(cuid())
+  tenantId     String
+  userId       String
+  investmentId String
+  amount       Float
+  paymentDate  DateTime
+  exDate       DateTime?
+  type         String   @default("cash") // cash, stock
+  createdAt    DateTime @default(now())
+
+  // Relations
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  investment Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([investmentId])
+  @@index([paymentDate])
+  @@map("dividends")
+}
+
+model Goal {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  name        String
+  description String?
+  targetAmount Float
+  currentAmount Float   @default(0)
+  targetDate  DateTime?
+  category    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([targetDate])
+  @@map("goals")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  name      String
+  email     String?
+  phone     String?
+  type      String   // client, supplier, partner
+  metadata  String   @default("{}")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([type])
+  @@map("contacts")
+}

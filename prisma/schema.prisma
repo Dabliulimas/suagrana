@@ -1,0 +1,212 @@
+// Prisma schema para SuaGrana com Neon PostgreSQL
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  avatar       String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  accounts     Account[]
+  budgets      Budget[]
+  contacts     Contact[]
+  goals        Goal[]
+  investments  Investment[]
+  transactions Transaction[]
+  settings     UserSettings[]
+  categories   Category[]
+  tags         Tag[]
+
+  @@map("users")
+}
+
+model Account {
+  id           String        @id @default(cuid())
+  userId       String        @map("user_id")
+  name         String
+  type         String
+  balance      Decimal       @default(0)
+  description  String?
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("accounts")
+}
+
+model Transaction {
+  id                 String        @id @default(cuid())
+  userId             String        @map("user_id")
+  accountId          String        @map("account_id")
+  categoryId         String?       @map("category_id")
+  description        String
+  amount             Decimal
+  type               String
+  category           String        // Manter para compatibilidade
+  date               DateTime
+  notes              String?
+  isShared           Boolean       @default(false) @map("is_shared")
+  sharedWith         String?       @map("shared_with")
+  installments       Int?          @default(1)
+  currentInstallment Int?          @default(1) @map("current_installment")
+  parentId           String?       @map("parent_id")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  parent             Transaction?  @relation("TransactionInstallments", fields: [parentId], references: [id])
+  children           Transaction[] @relation("TransactionInstallments")
+  account            Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryRef        Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags               Tag[]         @relation("TransactionTags")
+
+  @@map("transactions")
+}
+
+model Goal {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  name          String
+  description   String?
+  targetAmount  Decimal   @map("target_amount")
+  currentAmount Decimal   @default(0) @map("current_amount")
+  targetDate    DateTime? @map("target_date")
+  category      String
+  priority      String    @default("medium")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+model Investment {
+  id            String     @id @default(cuid())
+  userId        String     @map("user_id")
+  name          String
+  type          String
+  symbol        String?
+  quantity      Decimal
+  purchasePrice Decimal    @map("purchase_price")
+  currentPrice  Decimal?   @map("current_price")
+  purchaseDate  DateTime   @map("purchase_date")
+  broker        String?
+  fees          Decimal    @default(0)
+  notes         String?
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  dividends     Dividend[]
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("investments")
+}
+
+model Dividend {
+  id           String     @id @default(cuid())
+  investmentId String     @map("investment_id")
+  amount       Decimal
+  paymentDate  DateTime   @map("payment_date")
+  type         String     @default("dividend")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  investment   Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+
+  @@map("dividends")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  email     String?
+  phone     String?
+  category  String?
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+model UserSettings {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "income_settings", "categories", "tags", "family_members"
+  data      String   // Dados da configuração em formato JSON string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("user_settings")
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  userId       String        @map("user_id")
+  name         String
+  type         String        // "income", "expense", "transfer"
+  color        String?
+  icon         String?
+  description  String?
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@unique([userId, name, type])
+  @@map("categories")
+}
+
+model Tag {
+  id           String        @id @default(cuid())
+  userId       String        @map("user_id")
+  name         String
+  color        String?
+  description  String?
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[] @relation("TransactionTags")
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model Budget {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  categoryId     String    @map("category_id")
+  amount         Decimal
+  period         String    @default("monthly") // monthly, weekly, yearly
+  startDate      DateTime? @map("start_date")
+  endDate        DateTime? @map("end_date")
+  alertThreshold Int       @default(80) @map("alert_threshold") // Porcentagem para alerta
+  description    String?
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category       Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, period])
+  @@map("budgets")
+}

@@ -1,0 +1,41 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Configurações específicas para desenvolvimento
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false,
+    "noUncheckedIndexedAccess": false,
+
+    // Acelerar compilação em desenvolvimento
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true,
+
+    // Source maps mais rápidos
+    "sourceMap": false,
+    "inlineSourceMap": false,
+
+    // Desabilitar verificações desnecessárias em dev
+    "noPropertyAccessFromIndexSignature": false,
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true
+  },
+  "exclude": [
+    "node_modules",
+    ".next",
+    "build",
+    "dist",
+    "scripts/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "playwright.config.ts",
+    "jest.config.js",
+    "*.config.js",
+    "*.config.ts"
+  ]
+}

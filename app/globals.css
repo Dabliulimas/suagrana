@@ -1,0 +1,830 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    --base-font-size: 16px;
+  }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 40% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 216 12.2% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 224 71.4% 4.1%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 84% 4.9%;
+    --sidebar-accent: 215 27.9% 16.9%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 27.9% 16.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  /* Compact mode styles */
+  .compact-mode {
+    --spacing-unit: 0.75;
+  }
+
+  .compact-mode .p-4 {
+    padding: calc(1rem * var(--spacing-unit));
+  }
+
+  .compact-mode .p-6 {
+    padding: calc(1.5rem * var(--spacing-unit));
+  }
+
+  .compact-mode .gap-4 {
+    gap: calc(1rem * var(--spacing-unit));
+  }
+
+  .compact-mode .gap-6 {
+    gap: calc(1.5rem * var(--spacing-unit));
+  }
+
+  /* No animations */
+  .no-animations * {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+
+  /* High contrast mode */
+  .high-contrast {
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+  }
+
+  .high-contrast.dark {
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
+  }
+
+  /* Reduced motion */
+  .reduced-motion * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Dark mode improvements for better readability */
+  .dark .text-gray-500 {
+    color: hsl(217.9 10.6% 64.9%);
+  }
+
+  .dark .text-gray-600 {
+    color: hsl(215 16.3% 56.9%);
+  }
+
+  .dark .text-gray-700 {
+    color: hsl(215 13.8% 50.3%);
+  }
+
+  .dark .text-gray-400 {
+    color: hsl(217.9 10.6% 64.9%);
+  }
+
+  .dark .text-gray-900 {
+    color: hsl(210 40% 98%);
+  }
+
+  .dark .bg-gray-50 {
+    background-color: hsl(215 27.9% 16.9%);
+  }
+
+  .dark .bg-gray-100 {
+    background-color: hsl(215 27.9% 16.9%);
+  }
+
+  .dark .bg-white {
+    background-color: hsl(224 71.4% 4.1%);
+  }
+
+  .dark .text-white {
+    color: hsl(210 40% 98%);
+  }
+
+  .dark .text-black {
+    color: hsl(210 40% 98%);
+  }
+
+  .dark .bg-black {
+    background-color: hsl(224 71.4% 4.1%);
+  }
+
+  .dark .hover\:bg-gray-50:hover {
+    background-color: hsl(215 27.9% 16.9%);
+  }
+
+  .dark .hover\:bg-gray-100:hover {
+    background-color: hsl(215 27.9% 16.9%);
+  }
+
+  .dark .border-gray-200 {
+    border-color: hsl(215 27.9% 16.9%);
+  }
+
+  .dark .bg-gray-200 {
+    background-color: hsl(215 27.9% 16.9%);
+  }
+
+  /* Improved text contrast */
+  .dark .text-muted-foreground {
+    color: hsl(217.9 10.6% 64.9%);
+  }
+
+  /* Better button contrast */
+  .dark .bg-secondary {
+    background-color: hsl(215 27.9% 16.9%);
+  }
+
+  .dark .hover\:bg-secondary:hover {
+    background-color: hsl(215 27.9% 20.9%);
+  }
+
+  /* Input field improvements */
+  .dark input {
+    background-color: hsl(215 27.9% 16.9%);
+    border-color: hsl(215 27.9% 16.9%);
+    color: hsl(210 40% 98%);
+  }
+
+  .dark input:focus {
+    border-color: hsl(217.2 91.2% 59.8%);
+    box-shadow: 0 0 0 2px hsl(217.2 91.2% 59.8% / 0.2);
+  }
+
+  /* Table improvements */
+  .dark .hover\:bg-muted\/50:hover {
+    background-color: hsl(215 27.9% 16.9% / 0.5);
+  }
+
+  /* Card hover effects */
+  .dark .hover\:shadow-lg:hover {
+    box-shadow:
+      0 10px 15px -3px hsl(0 0% 0% / 0.3),
+      0 4px 6px -2px hsl(0 0% 0% / 0.2);
+  }
+
+  /* Skeleton loader improvements */
+  .dark .animate-pulse {
+    background-color: hsl(217.2 32.6% 17.5%);
+  }
+
+  /* Dialog and overlay improvements */
+  .dark .bg-black\/80 {
+    background-color: hsl(222.2 84% 4.9% / 0.8);
+  }
+
+  /* Selection improvements */
+  .dark .bg-blue-50 {
+    background-color: hsl(217.2 32.6% 17.5%);
+  }
+
+  .dark .border-blue-200 {
+    border-color: hsl(217.2 91.2% 59.8% / 0.3);
+  }
+
+  .dark .text-blue-700 {
+    color: hsl(217.2 91.2% 59.8%);
+  }
+
+  .dark .bg-blue-100 {
+    background-color: hsl(217.2 32.6% 17.5%);
+  }
+
+  .dark .text-blue-600 {
+    color: hsl(217.2 91.2% 59.8%);
+  }
+
+  /* Status color improvements */
+  .dark .bg-green-100 {
+    background-color: hsl(142 76% 36% / 0.1);
+  }
+
+  .dark .text-green-600 {
+    color: hsl(142 76% 36%);
+  }
+
+  .dark .bg-red-50 {
+    background-color: hsl(0 84.2% 60.2% / 0.1);
+  }
+
+  .dark .border-red-200 {
+    border-color: hsl(0 84.2% 60.2% / 0.3);
+  }
+
+  .dark .text-red-600 {
+    color: hsl(0 84.2% 60.2%);
+  }
+
+  .dark .text-orange-600 {
+    color: hsl(25 95% 53%);
+  }
+
+  .dark .text-yellow-600 {
+    color: hsl(43 74% 66%);
+  }
+
+  /* Additional dark mode fixes for better visibility */
+  .dark .text-gray-300 {
+    color: hsl(217.9 10.6% 64.9%);
+  }
+
+  .dark .text-gray-800 {
+    color: hsl(210 40% 98%);
+  }
+
+  .dark .bg-gray-300 {
+    background-color: hsl(215 27.9% 20.9%);
+  }
+
+  .dark .bg-gray-800 {
+    background-color: hsl(215 27.9% 16.9%);
+  }
+
+  .dark .bg-gray-900 {
+    background-color: hsl(224 71.4% 4.1%);
+  }
+
+  /* Icon and text visibility improvements */
+  .dark .text-gray-400 {
+    color: hsl(217.9 10.6% 64.9%) !important;
+  }
+
+  .dark .text-gray-500 {
+    color: hsl(217.9 10.6% 64.9%) !important;
+  }
+
+  .dark .text-gray-600 {
+    color: hsl(215 16.3% 56.9%) !important;
+  }
+
+  /* Better contrast for status colors */
+  .dark .bg-yellow-100 {
+    background-color: hsl(43 74% 66% / 0.1);
+  }
+
+  .dark .text-yellow-800 {
+    color: hsl(43 74% 66%);
+  }
+
+  .dark .bg-yellow-900 {
+    background-color: hsl(43 74% 15% / 0.3);
+  }
+
+  .dark .text-yellow-200 {
+    color: hsl(43 74% 80%);
+  }
+
+  .dark .bg-orange-100 {
+    background-color: hsl(25 95% 53% / 0.1);
+  }
+
+  .dark .text-orange-800 {
+    color: hsl(25 95% 53%);
+  }
+
+  .dark .bg-orange-900 {
+    background-color: hsl(25 95% 15% / 0.3);
+  }
+
+  .dark .text-orange-200 {
+    color: hsl(25 95% 80%);
+  }
+
+  .dark .border-yellow-200 {
+    border-color: hsl(43 74% 66% / 0.3);
+  }
+
+  .dark .border-orange-200 {
+    border-color: hsl(25 95% 53% / 0.3);
+  }
+
+  .dark .border-green-200 {
+    border-color: hsl(142 76% 36% / 0.3);
+  }
+
+  .dark .text-green-800 {
+    color: hsl(142 76% 36%);
+  }
+
+  .dark .bg-green-900 {
+    background-color: hsl(142 76% 15% / 0.3);
+  }
+
+  .dark .text-green-200 {
+    color: hsl(142 76% 80%);
+  }
+
+  .dark .bg-red-900 {
+    background-color: hsl(0 84.2% 15% / 0.3);
+  }
+
+  .dark .text-red-200 {
+    color: hsl(0 84.2% 80%);
+  }
+
+  .dark .bg-blue-900 {
+    background-color: hsl(217.2 91.2% 15% / 0.3);
+  }
+
+  .dark .text-blue-200 {
+    color: hsl(217.2 91.2% 80%);
+  }
+
+  .dark .bg-purple-900 {
+    background-color: hsl(271.5 81% 15% / 0.3);
+  }
+
+  .dark .text-purple-200 {
+    color: hsl(271.5 81% 80%);
+  }
+
+  .dark .bg-pink-900 {
+    background-color: hsl(330 81% 15% / 0.3);
+  }
+
+  .dark .text-pink-200 {
+    color: hsl(330 81% 80%);
+  }
+
+  .dark .bg-gray-700 {
+    background-color: hsl(215 27.9% 20.9%);
+  }
+
+  /* Additional color variations for better dark mode support */
+  .dark .text-green-400 {
+    color: hsl(142 76% 60%);
+  }
+
+  .dark .text-blue-400 {
+    color: hsl(217.2 91.2% 70%);
+  }
+
+  .dark .text-purple-400 {
+    color: hsl(271.5 81% 70%);
+  }
+
+  .dark .text-red-400 {
+    color: hsl(0 84.2% 70%);
+  }
+
+  .dark .text-orange-400 {
+    color: hsl(25 95% 70%);
+  }
+
+  .dark .text-yellow-400 {
+    color: hsl(43 74% 70%);
+  }
+
+  .dark .text-pink-400 {
+    color: hsl(330 81% 70%);
+  }
+
+  /* Text color variations for -800 classes */
+  .dark .text-blue-800 {
+    color: hsl(217.2 91.2% 75%);
+  }
+
+  .dark .text-purple-800 {
+    color: hsl(271.5 81% 75%);
+  }
+
+  .dark .text-pink-800 {
+    color: hsl(330 81% 75%);
+  }
+
+  /* Background variations for -100 classes */
+  .dark .bg-blue-100 {
+    background-color: hsl(217.2 91.2% 15% / 0.1);
+  }
+
+  .dark .bg-purple-100 {
+    background-color: hsl(271.5 81% 15% / 0.1);
+  }
+
+  .dark .bg-pink-100 {
+    background-color: hsl(330 81% 15% / 0.1);
+  }
+
+  .dark .border-green-700 {
+    border-color: hsl(142 76% 25%);
+  }
+
+  .dark .border-red-700 {
+    border-color: hsl(0 84.2% 25%);
+  }
+
+  .dark .border-blue-700 {
+    border-color: hsl(217.2 91.2% 25%);
+  }
+
+  .dark .border-purple-700 {
+    border-color: hsl(271.5 81% 25%);
+  }
+
+  .dark .border-orange-700 {
+    border-color: hsl(25 95% 25%);
+  }
+
+  .dark .border-yellow-700 {
+    border-color: hsl(43 74% 25%);
+  }
+
+  .dark .border-pink-700 {
+    border-color: hsl(330 81% 25%);
+  }
+
+  /* Opacity variations for backgrounds */
+  .dark .bg-green-900\/20 {
+    background-color: hsl(142 76% 15% / 0.2);
+  }
+
+  .dark .bg-green-900\/30 {
+    background-color: hsl(142 76% 15% / 0.3);
+  }
+
+  .dark .bg-red-900\/20 {
+    background-color: hsl(0 84.2% 15% / 0.2);
+  }
+
+  .dark .bg-red-900\/30 {
+    background-color: hsl(0 84.2% 15% / 0.3);
+  }
+
+  .dark .bg-blue-900\/20 {
+    background-color: hsl(217.2 91.2% 15% / 0.2);
+  }
+
+  .dark .bg-purple-900\/20 {
+    background-color: hsl(271.5 81% 15% / 0.2);
+  }
+
+  .dark .bg-orange-900\/20 {
+    background-color: hsl(25 95% 15% / 0.2);
+  }
+
+  .dark .bg-yellow-900\/20 {
+    background-color: hsl(43 74% 15% / 0.2);
+  }
+
+  .dark .bg-pink-900\/20 {
+    background-color: hsl(330 81% 15% / 0.2);
+  }
+
+  /* Green-50 variant for completed states */
+  .dark .bg-green-50 {
+    background-color: hsl(142 76% 36% / 0.05);
+  }
+
+  .dark .bg-red-100 {
+    background-color: hsl(0 84.2% 60.2% / 0.1);
+  }
+
+  .dark .text-red-800 {
+    color: hsl(0 84.2% 60.2%);
+  }
+
+  /* Modal and overlay improvements */
+  .dark .bg-black\/50 {
+    background-color: hsl(222.2 84% 4.9% / 0.8);
+  }
+
+  .dark .bg-black\/80 {
+    background-color: hsl(222.2 84% 4.9% / 0.9);
+  }
+
+  /* Search and input improvements */
+  .dark input::placeholder {
+    color: hsl(217.9 10.6% 64.9%);
+  }
+
+  .dark textarea {
+    background-color: hsl(215 27.9% 16.9%);
+    border-color: hsl(215 27.9% 16.9%);
+    color: hsl(210 40% 98%);
+  }
+
+  .dark textarea::placeholder {
+    color: hsl(217.9 10.6% 64.9%);
+  }
+
+  /* Better visibility for disabled elements */
+  .dark .opacity-50 {
+    opacity: 0.7;
+  }
+
+  .dark .opacity-70 {
+    opacity: 0.8;
+  }
+}
+
+/* Mobile-first optimizations */
+@layer utilities {
+  /* Touch-friendly button sizes */
+  .btn-touch {
+    @apply min-h-[44px] min-w-[44px] px-4 py-2;
+  }
+
+  /* Mobile spacing utilities */
+  .mobile-padding {
+    @apply px-4 py-3;
+  }
+
+  .mobile-margin {
+    @apply mx-4 my-3;
+  }
+
+  /* Mobile typography */
+  .mobile-title {
+    @apply text-xl font-bold leading-tight;
+  }
+
+  .mobile-subtitle {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Mobile card optimizations */
+  .mobile-card {
+    @apply rounded-lg shadow-sm border;
+  }
+
+  /* Mobile grid layouts */
+  .mobile-grid {
+    @apply grid grid-cols-1 gap-4;
+  }
+
+  @screen sm {
+    .mobile-grid {
+      @apply grid-cols-2;
+    }
+  }
+
+  @screen md {
+    .mobile-grid {
+      @apply grid-cols-3;
+    }
+  }
+
+  /* Mobile navigation */
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-background border-t z-50;
+  }
+
+  /* Mobile sidebar improvements */
+  .mobile-sidebar {
+    @apply w-full max-w-sm;
+  }
+
+  /* Mobile table responsiveness */
+  .mobile-table {
+    @apply block overflow-x-auto whitespace-nowrap;
+  }
+
+  .mobile-table table {
+    @apply min-w-full;
+  }
+
+  /* Mobile form improvements */
+  .mobile-form {
+    @apply space-y-4;
+  }
+
+  .mobile-input {
+    @apply w-full min-h-[44px] px-3 py-2 text-base;
+  }
+
+  /* Mobile modal optimizations */
+  .mobile-modal {
+    @apply mx-4 my-8 max-h-[90vh] overflow-y-auto;
+  }
+
+  /* Improved touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Mobile-specific hiding/showing */
+  .mobile-only {
+    @apply block;
+  }
+
+  .desktop-only {
+    @apply hidden;
+  }
+
+  @screen md {
+    .mobile-only {
+      @apply hidden;
+    }
+
+    .desktop-only {
+      @apply block;
+    }
+  }
+
+  /* Touch and Gesture Improvements */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Improved touch feedback */
+  .touch-feedback {
+    @apply transition-all duration-150 ease-in-out;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .touch-feedback:active {
+    @apply scale-95 bg-gray-100 dark:bg-gray-800;
+  }
+
+  /* Better button states for touch */
+  .btn-touch:active {
+    @apply scale-95;
+    transform-origin: center;
+  }
+
+  /* Swipe indicators */
+  .swipe-indicator {
+    @apply relative overflow-hidden;
+  }
+
+  .swipe-indicator::after {
+    content: "";
+    @apply absolute top-0 right-0 w-4 h-full bg-gradient-to-l from-gray-200 to-transparent pointer-events-none;
+  }
+
+  .dark .swipe-indicator::after {
+    @apply from-gray-800;
+  }
+
+  /* Pull to refresh indicator */
+  .pull-refresh {
+    @apply relative;
+  }
+
+  .pull-refresh::before {
+    content: "";
+    @apply absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-gray-300 rounded-full opacity-0 transition-opacity;
+  }
+
+  .pull-refresh.pulling::before {
+    @apply opacity-100;
+  }
+
+  /* Mobile scroll improvements */
+  .mobile-scroll {
+    @apply overflow-auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  .mobile-scroll::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .mobile-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .mobile-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 2px;
+  }
+
+  .mobile-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.7);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Mobile viewport optimizations */
+  @media (max-width: 768px) {
+    html {
+      font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    body {
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Improve scrolling on mobile */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Better button touch targets */
+    button,
+    [role="button"],
+    input[type="submit"],
+    input[type="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Improve form inputs on mobile */
+    input,
+    textarea,
+    select {
+      font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    /* Mobile-friendly focus states */
+    :focus {
+      outline: 2px solid hsl(var(--ring));
+      outline-offset: 2px;
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .tablet-grid {
+      @apply grid-cols-2 gap-6;
+    }
+  }
+}

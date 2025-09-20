@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste do Serviço Centralizado de Autenticação</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .log {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste do Serviço Centralizado de Autenticação</h1>
+        
+        <div class="test-section info">
+            <h3>📋 Status do Sistema</h3>
+            <p><strong>API Client:</strong> <span id="apiClientStatus">Carregando...</span></p>
+            <p><strong>Token Atual:</strong> <span id="currentToken">Verificando...</span></p>
+            <p><strong>Usuário Logado:</strong> <span id="currentUser">Verificando...</span></p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 Testes de Autenticação</h3>
+            <button onclick="testLogin()">Testar Login</button>
+            <button onclick="testRefreshToken()">Testar Refresh Token</button>
+            <button onclick="testProtectedRequest()">Testar Requisição Protegida</button>
+            <button onclick="testLogout()">Testar Logout</button>
+            <button onclick="runAllTests()">Executar Todos os Testes</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Resultados dos Testes</h3>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Log de Atividades</h3>
+            <button onclick="clearLog()">Limpar Log</button>
+            <div id="logContainer" class="log"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        let apiClient;
+        let testResults = [];
+
+        // Função para adicionar log
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logEntry.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#6c757d';
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Função para limpar log
+        window.clearLog = function() {
+            document.getElementById('logContainer').innerHTML = '';
+        }
+
+        // Função para atualizar status
+        function updateStatus() {
+            try {
+                const hasApiClient = !!apiClient;
+                document.getElementById('apiClientStatus').textContent = hasApiClient ? '✅ Carregado' : '❌ Não carregado';
+                
+                const token = apiClient?.getToken();
+                document.getElementById('currentToken').textContent = token ? '✅ Presente' : '❌ Ausente';
+                
+                // Verificar usuário logado seria feito através de uma requisição
+                document.getElementById('currentUser').textContent = '🔄 Verificando...';
+            } catch (error) {
+                addLog(`Erro ao atualizar status: ${error.message}`, 'error');
+            }
+        }
+
+        // Carregar o API Client
+        async function loadApiClient() {
+            try {
+                addLog('🔄 Carregando API Client...');
+                const module = await import('./lib/api-client.js');
+                apiClient = module.apiClient;
+                addLog('✅ API Client carregado com sucesso', 'success');
+                updateStatus();
+            } catch (error) {
+                addLog(`❌ Erro ao carregar API Client: ${error.message}`, 'error');
+                document.getElementById('apiClientStatus').textContent = '❌ Erro ao carregar';
+            }
+        }
+
+        // Teste de login
+        window.testLogin = async function() {
+            if (!apiClient) {
+                addLog('❌ API Client não está carregado', 'error');
+                return false;
+            }
+
+            try {
+                addLog('🔐 Testando login...');
+                const result = await apiClient.login('teste.auth@exemplo.com', 'MinhaSenh@123');
+                addLog(`✅ Login realizado com sucesso: ${JSON.stringify(result)}`, 'success');
+                updateStatus();
+                return true;
+            } catch (error) {
+                addLog(`❌ Erro no login: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Teste de refresh token
+        window.testRefreshToken = async function() {
+            if (!apiClient) {
+                addLog('❌ API Client não está carregado', 'error');
+                return false;
+            }
+
+            try {
+                addLog('🔄 Testando refresh token...');
+                const result = await apiClient.refreshToken();
+                addLog(`✅ Refresh token realizado com sucesso: ${JSON.stringify(result)}`, 'success');
+                updateStatus();
+                return true;
+            } catch (error) {
+                addLog(`❌ Erro no refresh token: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Teste de requisição protegida
+        window.testProtectedRequest = async function() {
+            if (!apiClient) {
+                addLog('❌ API Client não está carregado', 'error');
+                return false;
+            }
+
+            try {
+                addLog('👤 Testando requisição protegida (/auth/me)...');
+                const result = await apiClient.get('/auth/me');
+                addLog(`✅ Requisição protegida realizada com sucesso: ${JSON.stringify(result)}`, 'success');
+                document.getElementById('currentUser').textContent = result.data?.user?.email || '✅ Logado';
+                return true;
+            } catch (error) {
+                addLog(`❌ Erro na requisição protegida: ${error.message}`, 'error');
+                document.getElementById('currentUser').textContent = '❌ Não logado';
+                return false;
+            }
+        }
+
+        // Teste de logout
+        window.testLogout = async function() {
+            if (!apiClient) {
+                addLog('❌ API Client não está carregado', 'error');
+                return false;
+            }
+
+            try {
+                addLog('🚪 Testando logout...');
+                const result = await apiClient.logout();
+                addLog(`✅ Logout realizado com sucesso: ${JSON.stringify(result)}`, 'success');
+                updateStatus();
+                return true;
+            } catch (error) {
+                addLog(`❌ Erro no logout: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Executar todos os testes
+        window.runAllTests = async function() {
+            addLog('🧪 Iniciando bateria completa de testes...', 'info');
+            testResults = [];
+
+            const tests = [
+                { name: 'Login', fn: testLogin },
+                { name: 'Requisição Protegida', fn: testProtectedRequest },
+                { name: 'Refresh Token', fn: testRefreshToken },
+                { name: 'Logout', fn: testLogout }
+            ];
+
+            for (const test of tests) {
+                addLog(`\n🔄 Executando teste: ${test.name}`);
+                const result = await test.fn();
+                testResults.push({ name: test.name, passed: result });
+                
+                // Pequena pausa entre testes
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            // Mostrar resultados
+            const passed = testResults.filter(r => r.passed).length;
+            const total = testResults.length;
+            
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.innerHTML = `
+                <h4>📊 Resumo dos Testes</h4>
+                <p><strong>Passou:</strong> ${passed}/${total} testes</p>
+                <ul>
+                    ${testResults.map(r => `
+                        <li style="color: ${r.passed ? '#28a745' : '#dc3545'}">
+                            ${r.passed ? '✅' : '❌'} ${r.name}
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+
+            if (passed === total) {
+                addLog('🎉 Todos os testes passaram! O serviço centralizado está funcionando corretamente.', 'success');
+                resultsContainer.className = 'test-section success';
+            } else {
+                addLog('⚠️ Alguns testes falharam. Verifique os logs para mais detalhes.', 'error');
+                resultsContainer.className = 'test-section error';
+            }
+        }
+
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', async () => {
+            addLog('🚀 Iniciando teste do serviço centralizado de autenticação...');
+            await loadApiClient();
+        });
+    </script>
+</body>
+</html>
