@@ -18,7 +18,22 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['localhost'],
   },
+  // Configurações específicas para Netlify
+  output: 'standalone',
+  distDir: '.next',
+  trailingSlash: false,
+  generateEtags: false,
+  poweredByHeader: false,
+  compress: true,
+  reactStrictMode: false,
+  
+  // Configurações de ambiente
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+  
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -30,14 +45,12 @@ const nextConfig = {
     }
     return config;
   },
-  // Configurações para evitar erros de build
-  outputFileTracingRoot: path.join(__dirname, "../../"),
-  trailingSlash: false,
-  generateEtags: false,
-  poweredByHeader: false,
-  compress: false,
-  // Desabilitar otimizações que podem causar problemas
-  reactStrictMode: false,
+  
+  // Configurações para build otimizado
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
 };
 
 export default nextConfig;
