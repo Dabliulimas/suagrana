@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useAccounts } from "../contexts/unified-context";
+import { useAccounts, useTransactions } from "../contexts/unified-context";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -50,24 +50,8 @@ export function UnifiedTransactionList({
     notes: ''
   });
   
-  // IMPLEMENTAÇÃO SIMPLES - SEM CONTEXTO COMPLEXO
-  const [allTransactions, setAllTransactions] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  /**
-   * @deprecated localStorage não é mais usado - dados ficam no banco
-   */
-  // Carregar transações do banco via DataService
-  useEffect(() => {
-    const loadTransactions = () => {
-      console.log('loadTransactions foi removida - localStorage não é mais usado');
-      // Dados agora vêm do banco via DataService
-      setAllTransactions([]);
-      setIsLoading(false);
-    };
-    
-    loadTransactions();
-  }, []);
+  // Usar o hook useTransactions do contexto unificado
+  const { transactions: allTransactions, isLoading } = useTransactions();
   
   // Estado dos dados filtrados
   const [filteredData, setFilteredData] = useState<any[]>([]);

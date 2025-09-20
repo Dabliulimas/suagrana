@@ -52,16 +52,13 @@ import { useAccounts, useTransactions, useGoals, useContacts } from "../contexts
 import { toast } from "sonner";
 
 export function FinancialReports() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  // Usar o hook do contexto unificado para carregar transações
+  const { transactions } = useTransactions();
   const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [selectedReport, setSelectedReport] = useState("overview");
   const [showFilters, setShowFilters] = useState(false);
-
-  useEffect(() => {
-    setTransactions(transactions);
-  }, []);
 
   // Filtrar transações por período usando CustomDateFilter
   const getFilteredTransactions = () => {

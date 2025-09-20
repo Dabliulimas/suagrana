@@ -24,7 +24,6 @@ import {
   PieChart,
 } from "lucide-react";
 import {
-  storage,
   type Transaction,
   type Account,
   type Investment,
@@ -35,50 +34,22 @@ import {
   CustomDateFilter,
   filterByPeriod,
 } from "./ui/custom-date-filter";
+import { useAccounts, useTransactions, useGoals } from "../contexts/unified-context";
 
 export function AdvancedReports() {
-  // const { accounts, create: createAccount, update: updateAccount, delete: deleteAccount } = useAccounts();
-  // const { transactions, create: createTransaction, update: updateTransaction, delete: deleteTransaction } = useTransactions();
+  // Usar hooks do contexto unificado
+  const { transactions } = useTransactions();
+  const { accounts } = useAccounts();
+  const { goals } = useGoals();
   const [selectedPeriod, setSelectedPeriod] = useState("current-month");
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [showFilters, setShowFilters] = useState(false);
   const [reportType, setReportType] = useState("overview");
-  const [data, setData] = useState<{
-    transactions: Transaction[];
-    accounts: Account[];
-    investments: Investment[];
-    goals: Goal[];
-    trips: Trip[];
-  }>({
-    transactions: [],
-    accounts: [],
-    investments: [],
-    goals: [],
-    trips: [],
-  });
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = () => {
-    try {
-      setData({
-        transactions: storage.getTransactions() || [],
-        accounts: storage.getAccounts() || [],
-        investments: storage.getInvestments() || [],
-        goals: storage.getGoals() || [],
-        trips: storage.getTrips() || [],
-      });
-    } catch (error) {
-      logComponents.error("Error loading data for reports:", error);
-    }
-  };
 
   const getFilteredTransactions = () => {
     return filterByPeriod(
-      data.transactions,
+      transactions,
       selectedPeriod,
       customStartDate,
       customEndDate,
