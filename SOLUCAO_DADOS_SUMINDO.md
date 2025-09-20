@@ -28,9 +28,9 @@ Acesse: **Site Settings > Environment Variables** no painel do Netlify
 
 ```bash
 # 1. BANCO DE DADOS (OBRIGATÓRIO)
-DATABASE_URL=postgresql://neondb_owner:npg_V1IOQaCwxS2s@ep-fancy-union-aew5w31g-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require&channel_binding=require
 
-DIRECT_URL=postgresql://neondb_owner:npg_V1IOQaCwxS2s@ep-fancy-union-aew5w31g.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+DIRECT_URL=postgresql://username:password@host:port/database?sslmode=require&channel_binding=require
 
 # 2. NEXTAUTH (OBRIGATÓRIO)
 NEXTAUTH_SECRET=your-production-secret-key-here-minimum-32-characters

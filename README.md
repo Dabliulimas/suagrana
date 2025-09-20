@@ -152,11 +152,13 @@ Crie um arquivo `.env.local` na raiz do projeto:
 
 ```env
 # Database
-DATABASE_URL="postgresql://usuario:senha@localhost:5432/suagrana"
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
 
 # Supabase (opcional)
-NEXT_PUBLIC_SUPABASE_URL="sua-url-do-supabase"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="sua-chave-anonima"
+NEXT_PUBLIC_SUPABASE_URL="your-supabase-url"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-anon-key"
+
+```
 
 # APIs Externas
 BRAPI_TOKEN="seu-token-brapi" # Para cotações de ações
