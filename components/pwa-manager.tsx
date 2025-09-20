@@ -63,7 +63,7 @@ export function PWAManager({ onInstallPrompt }: PWAManagerProps) {
 
     // Check online status
     const updateOnlineStatus = () => {
-      if (typeof navigator === "undefined") return;
+      if (typeof window === "undefined" || typeof navigator === "undefined") return;
       setIsOnline(navigator.onLine);
     };
 
@@ -112,7 +112,7 @@ export function PWAManager({ onInstallPrompt }: PWAManagerProps) {
     }
 
     // Service Worker registration and update detection
-    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    if (typeof window !== "undefined" && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {

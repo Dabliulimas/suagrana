@@ -55,7 +55,8 @@ export function EnhancedHeader({
     // Detect OS for keyboard shortcut display
     const isMac =
       typeof window !== "undefined" &&
-      navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      typeof navigator !== "undefined" &&
+      navigator.platform?.toUpperCase().indexOf("MAC") >= 0;
     setSearchShortcut(isMac ? "⌘K" : "Ctrl+K");
 
     // Global keyboard shortcut for search

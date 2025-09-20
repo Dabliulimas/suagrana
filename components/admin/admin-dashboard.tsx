@@ -481,7 +481,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   </div>
                   <div className="flex justify-between">
                     <span>Navegador:</span>
-                    <span className="text-sm">{navigator.userAgent.split(' ')[0]}</span>
+                    <span className="text-sm">
+                      {typeof window !== "undefined" && navigator?.userAgent 
+                        ? navigator.userAgent.split(' ')[0] 
+                        : "N/A"}
+                    </span>
                   </div>
                 </div>
               </CardContent>
