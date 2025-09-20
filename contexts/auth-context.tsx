@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { logComponents } from "../lib/logger";
-import { apiClient } from '../lib/api-client';
+import apiClient from '../lib/api-client';
 
 interface User {
   id: string;
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const userData = await apiClient.getCurrentUser();
         if (userData) {
           setUser(userData);
-          setToken(apiClient.getAccessToken());
+          setToken(apiClient.getAccessTokenPublic());
         }
       } catch (error) {
         logComponents.info('Nenhum usuário autenticado encontrado');
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const userData = await apiClient.getCurrentUser();
       if (userData) {
         setUser(userData);
-        setToken(apiClient.getAccessToken());
+        setToken(apiClient.getAccessTokenPublic());
       }
     } catch (error) {
       logComponents.error('Erro ao atualizar dados do usuário:', error);
@@ -85,17 +85,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       setIsLoading(true);
       
-      const response = await apiClient.login(email, password);
+      const tokens = await apiClient.login(email, password);
       
-      if (response.success && response.data?.user) {
-        setUser(response.data.user);
-        setToken(apiClient.getAccessToken());
-        logComponents.info('✅ Login realizado com sucesso');
-        return true;
-      } else {
-        logComponents.error('Erro no login:', response.message || 'Erro desconhecido');
-        return false;
+      if (tokens.accessToken) {
+        // Buscar dados do usuário após login bem-sucedido
+        const userData = await apiClient.getCurrentUser();
+        if (userData) {
+          setUser(userData);
+          setToken(tokens.accessToken);
+          logComponents.info('✅ Login realizado com sucesso');
+          return true;
+        }
       }
+      
+      logComponents.error('Erro no login: Falha ao obter dados do usuário');
+      return false;
     } catch (error) {
       logComponents.error('Erro ao fazer login:', error);
       return false;

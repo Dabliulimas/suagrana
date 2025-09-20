@@ -1,6 +1,6 @@
 "use client";
 
-import { backendClient } from "./api-client";
+import apiClient from "./api-client";
 import { logComponents } from "./logger";
 import { toast } from "sonner";
 
@@ -95,7 +95,7 @@ const response = await fetch("http://localhost:3001/health", {
   async getAccounts() {
     return this.executeWithFallback(
       async () => {
-        const response = await backendClient.get("/accounts");
+        const response = await apiClient.get("/accounts");
         return response.data?.accounts || [];
       },
       async () => {
@@ -108,7 +108,7 @@ const response = await fetch("http://localhost:3001/health", {
   async createAccount(accountData: any) {
     return this.executeWithFallback(
       async () => {
-        const response = await backendClient.post("/accounts", accountData);
+        const response = await apiClient.post("/accounts", accountData);
         return response.data.account;
       },
       async () => {
@@ -122,7 +122,7 @@ const response = await fetch("http://localhost:3001/health", {
 
   async updateAccount(id: string, updates: any) {
     try {
-      const response = await backendClient.put(`/accounts/${id}`, updates);
+      const response = await apiClient.put(`/accounts/${id}`, updates);
       toast.success("Conta atualizada com sucesso");
       return response.data.account;
     } catch (error) {
@@ -133,7 +133,7 @@ const response = await fetch("http://localhost:3001/health", {
 
   async deleteAccount(id: string) {
     try {
-      await backendClient.delete(`/accounts/${id}`);
+      await apiClient.delete(`/accounts/${id}`);
       toast.success("Conta excluída com sucesso");
       return true;
     } catch (error) {
@@ -146,7 +146,7 @@ const response = await fetch("http://localhost:3001/health", {
   async getTransactions() {
     return this.executeWithFallback(
       async () => {
-        const response = await backendClient.get("/transactions");
+        const response = await apiClient.get("/transactions");
         return response.data?.transactions || [];
       },
       async () => {
@@ -159,7 +159,7 @@ const response = await fetch("http://localhost:3001/health", {
   async createTransaction(transactionData: any) {
     return this.executeWithFallback(
       async () => {
-        const response = await backendClient.post(
+        const response = await apiClient.post(
         "/transactions",
         transactionData,
       );
@@ -176,7 +176,7 @@ const response = await fetch("http://localhost:3001/health", {
 
   async updateTransaction(id: string, updates: any) {
     try {
-      const response = await backendClient.put(`/transactions/${id}`, updates);
+      const response = await apiClient.put(`/transactions/${id}`, updates);
       toast.success("Transação atualizada com sucesso");
       return response.data.transaction;
     } catch (error) {
@@ -187,7 +187,7 @@ const response = await fetch("http://localhost:3001/health", {
 
   async deleteTransaction(id: string) {
     try {
-      await backendClient.delete(`/transactions/${id}`);
+      await apiClient.delete(`/transactions/${id}`);
       toast.success("Transação excluída com sucesso");
       return true;
     } catch (error) {
@@ -200,7 +200,7 @@ const response = await fetch("http://localhost:3001/health", {
   async getGoals() {
     return this.executeWithFallback(
       async () => {
-        const response = await backendClient.get("/goals");
+        const response = await apiClient.get("/goals");
         return response.data?.goals || [];
       },
       async () => {
@@ -213,7 +213,7 @@ const response = await fetch("http://localhost:3001/health", {
   async createGoal(goalData: any) {
     return this.executeWithFallback(
       async () => {
-        const response = await backendClient.post("/goals", goalData);
+        const response = await apiClient.post("/goals", goalData);
         return response.data.goal;
       },
       async () => {
@@ -227,7 +227,7 @@ const response = await fetch("http://localhost:3001/health", {
 
   async updateGoal(id: string, updates: any) {
     try {
-      const response = await backendClient.put(`/goals/${id}`, updates);
+      const response = await apiClient.put(`/goals/${id}`, updates);
       toast.success("Meta atualizada com sucesso");
       return response.data.goal;
     } catch (error) {
@@ -238,7 +238,7 @@ const response = await fetch("http://localhost:3001/health", {
 
   async deleteGoal(id: string) {
     try {
-      await backendClient.delete(`/goals/${id}`);
+      await apiClient.delete(`/goals/${id}`);
       toast.success("Meta excluída com sucesso");
       return true;
     } catch (error) {
@@ -251,7 +251,7 @@ const response = await fetch("http://localhost:3001/health", {
   async getInvestments() {
     return this.executeWithFallback(
       async () => {
-        const response = await backendClient.get("/investments");
+        const response = await apiClient.get("/investments");
         return response.data?.investments || [];
       },
       async () => {
@@ -264,7 +264,7 @@ const response = await fetch("http://localhost:3001/health", {
   async createInvestment(investmentData: any) {
     return this.executeWithFallback(
       async () => {
-        const response = await backendClient.post(
+        const response = await apiClient.post(
           "/investments",
           investmentData,
         );
@@ -281,7 +281,7 @@ const response = await fetch("http://localhost:3001/health", {
 
   async updateInvestment(id: string, updates: any) {
     try {
-      const response = await backendClient.put(`/investments/${id}`, updates);
+      const response = await apiClient.put(`/investments/${id}`, updates);
       toast.success("Investimento atualizado com sucesso");
       return response.data.investment;
     } catch (error) {
@@ -292,7 +292,7 @@ const response = await fetch("http://localhost:3001/health", {
 
   async deleteInvestment(id: string) {
     try {
-      await backendClient.delete(`/investments/${id}`);
+      await apiClient.delete(`/investments/${id}`);
       toast.success("Investimento excluído com sucesso");
       return true;
     } catch (error) {

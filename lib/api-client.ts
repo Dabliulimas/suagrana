@@ -259,6 +259,11 @@ class ApiClient {
     return !!this.getAccessToken();
   }
 
+  // Método público para obter o token de acesso
+  getAccessTokenPublic(): string | null {
+    return this.getAccessToken();
+  }
+
   // Método para obter o cliente axios bruto (se necessário)
   getClient(): AxiosInstance {
     return this.client;
