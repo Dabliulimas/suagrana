@@ -1,34 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const queryString = searchParams.toString();
-    const url = queryString 
-      ? `${BACKEND_URL}/api/accounts?${queryString}`
-      : `${BACKEND_URL}/api/accounts`;
+    const tenant_id = searchParams.get("tenant_id");
+    const active = searchParams.get("active");
+    
+    // Construir filtros
+    const where: any = {};
+    if (tenant_id) where.tenant_id = tenant_id;
+    if (active !== null) where.isActive = active === "true";
 
-    const response = await fetch(url, {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        // Repassar headers de autenticação se existirem
-        ...(request.headers.get("authorization") && {
-          authorization: request.headers.get("authorization")!,
-        }),
-        ...(request.headers.get("cookie") && {
-          cookie: request.headers.get("cookie")!,
-        }),
+    // Buscar contas
+    const accounts = await prisma.account.findMany({
+      where,
+      orderBy: {
+        name: 'asc'
       },
+      include: {
+        ledgers: true,
+        tenants: {
+          select: {
+            name: true,
+            slug: true
+          }
+        },
+        entries: {
+          take: 10,
+          orderBy: {
+            created_at: 'desc'
+          },
+          include: {
+            transactions: {
+              select: {
+                description: true,
+                date: true
+              }
+            }
+          }
+        }
+      }
     });
 
-    const data = await response.json();
+    // Calcular saldos para cada conta
+    const accountsWithBalance = await Promise.all(
+      accounts.map(async (account) => {
+        const balance = await prisma.entries.aggregate({
+          where: { account_id: account.id },
+          _sum: {
+            credit: true,
+            debit: true
+          }
+        });
+        
+        const currentBalance = (balance._sum.credit || 0) - (balance._sum.debit || 0);
+        
+        return {
+          ...account,
+          balance: currentBalance
+        };
+      })
+    );
 
-    return NextResponse.json(data, {
-      status: response.status,
+    return NextResponse.json({
+      success: true,
+      data: accountsWithBalance,
+      total: accountsWithBalance.length
+    }, {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -36,9 +75,13 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro no proxy de accounts:", error);
+    console.error("Erro ao buscar contas:", error);
     return NextResponse.json(
-      { error: "Erro interno do servidor" },
+      { 
+        success: false,
+        error: "Erro interno do servidor",
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      },
       { status: 500 }
     );
   }

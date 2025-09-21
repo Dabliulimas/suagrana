@@ -428,10 +428,10 @@ export function AccountOperations({
                   <SelectContent>
                     {accounts
                       .filter(
-                        (account) => account.id && account.id.trim() !== "",
+                        (account) => account.id && String(account.id).trim() !== "",
                       )
                       .map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
+                        <SelectItem key={account.id} value={String(account.id)}>
                           <div className="flex items-center space-x-2">
                             <Building2 className="w-4 h-4" />
                             <span>{account.name}</span>
@@ -461,10 +461,10 @@ export function AccountOperations({
                           (account) =>
                             account.id !== selectedAccount &&
                             account.id &&
-                            account.id.trim() !== "",
+                            String(account.id).trim() !== "",
                         )
                         .map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
+                          <SelectItem key={account.id} value={String(account.id)}>
                             <div className="flex items-center space-x-2">
                               <Building2 className="w-4 h-4" />
                               <span>{account.name}</span>

@@ -9,31 +9,42 @@ export async function GET(request: NextRequest) {
 
     // Definir datas padrão se não fornecidas
     const now = new Date();
-    const defaultStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const defaultEndDate = now.toISOString().split('T')[0];
+    const defaultStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const defaultEndDate = now.toISOString();
 
     const finalStartDate = startDate || defaultStartDate;
     const finalEndDate = endDate || defaultEndDate;
 
-    // Buscar transações de despesa do período
-    const expenseTransactions = await prisma.transaction.findMany({
+    // Buscar entries de débito (despesas) do período com suas categorias
+    const expenseEntries = await prisma.entries.findMany({
       where: {
-        date: {
-          gte: finalStartDate,
-          lte: finalEndDate
+        debit: {
+          gt: 0
         },
-        type: 'expense'
+        transactions: {
+          date: {
+            gte: new Date(finalStartDate),
+            lte: new Date(finalEndDate)
+          }
+        }
       },
-      select: {
-        id: true,
-        description: true,
-        amount: true,
-        category: true,
-        date: true,
-        accountId: true
+      include: {
+        transactions: {
+          select: {
+            id: true,
+            description: true,
+            date: true
+          }
+        },
+        categories: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       },
       orderBy: {
-        date: 'desc'
+        created_at: 'desc'
       }
     });
 
@@ -45,9 +56,9 @@ export async function GET(request: NextRequest) {
       average: number;
     } } = {};
 
-    expenseTransactions.forEach((t: any) => {
-      const category = t.category || 'Outros';
-      const amount = Math.abs(parseFloat(t.amount));
+    expenseEntries.forEach((entry: any) => {
+      const category = entry.categories?.name || 'Outros';
+      const amount = parseFloat(entry.debit.toString());
       
       if (!categoryData[category]) {
         categoryData[category] = { 
@@ -61,11 +72,11 @@ export async function GET(request: NextRequest) {
       categoryData[category].total += amount;
       categoryData[category].count += 1;
       categoryData[category].transactions.push({
-        id: t.id,
-        description: t.description,
+        id: entry.transactions.id,
+        description: entry.transactions.description || entry.description,
         amount: amount,
-        date: t.date,
-        accountId: t.accountId
+        date: entry.transactions.date,
+        entryId: entry.id
       });
     });
 
@@ -94,27 +105,34 @@ export async function GET(request: NextRequest) {
 
     // Análise de tendências por categoria (comparar com período anterior)
     const periodDays = Math.ceil((new Date(finalEndDate).getTime() - new Date(finalStartDate).getTime()) / (1000 * 60 * 60 * 24));
-    const previousStartDate = new Date(new Date(finalStartDate).getTime() - (periodDays * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
-    const previousEndDate = new Date(new Date(finalStartDate).getTime() - (24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+    const previousStartDate = new Date(new Date(finalStartDate).getTime() - (periodDays * 24 * 60 * 60 * 1000)).toISOString();
+    const previousEndDate = new Date(new Date(finalStartDate).getTime() - (24 * 60 * 60 * 1000)).toISOString();
 
-    const previousExpenses = await prisma.transaction.findMany({
+    const previousExpenses = await prisma.entries.findMany({
       where: {
-        date: {
-          gte: previousStartDate,
-          lte: previousEndDate
+        debit: {
+          gt: 0
         },
-        type: 'expense'
+        transactions: {
+          date: {
+            gte: new Date(previousStartDate),
+            lte: new Date(previousEndDate)
+          }
+        }
       },
-      select: {
-        category: true,
-        amount: true
+      include: {
+        categories: {
+          select: {
+            name: true
+          }
+        }
       }
     });
 
     const previousCategoryData: { [key: string]: number } = {};
-    previousExpenses.forEach((exp: any) => {
-      const category = exp.category || 'Outros';
-      const amount = Math.abs(parseFloat(exp.amount));
+    previousExpenses.forEach((entry: any) => {
+      const category = entry.categories?.name || 'Outros';
+      const amount = parseFloat(entry.debit.toString());
       previousCategoryData[category] = (previousCategoryData[category] || 0) + amount;
     });
 
@@ -139,7 +157,7 @@ export async function GET(request: NextRequest) {
       summary: {
         totalExpenses,
         categoryCount: categories.length,
-        transactionCount: expenseTransactions.length,
+        transactionCount: expenseEntries.length,
         averagePerCategory: categories.length > 0 ? totalExpenses / categories.length : 0,
         topCategory: categories.length > 0 ? categories[0] : null
       },

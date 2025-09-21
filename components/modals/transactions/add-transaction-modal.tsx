@@ -1226,10 +1226,10 @@ export function AddTransactionModal({
                             {accounts
                               .filter(
                                 (account) =>
-                                  account.id && account.id.trim() !== "",
+                                  account.id && String(account.id).trim() !== "",
                               )
                               .map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
+                                <SelectItem key={account.id} value={String(account.id)}>
                                   {account.name} - {account.bank}
                                 </SelectItem>
                               ))}
@@ -1635,10 +1635,10 @@ export function AddTransactionModal({
                             {accounts
                               .filter(
                                 (account) =>
-                                  account.id && account.id.trim() !== "",
+                                  account.id && String(account.id).trim() !== "",
                               )
                               .map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
+                                <SelectItem key={account.id} value={String(account.id)}>
                                   {account.name} - {account.bank}
                                 </SelectItem>
                               ))}

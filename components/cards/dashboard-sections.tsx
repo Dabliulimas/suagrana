@@ -217,7 +217,7 @@ export function CategoryBudgetCard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PieChart className="h-5 w-5" />
-            Orçamento por Categoria
+            Gastos por Categoria
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -237,42 +237,44 @@ export function CategoryBudgetCard() {
     )
   }
 
-  const categoryBudget = categoryData?.categories || []
+  const categorySpending = categoryData?.categories || []
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PieChart className="h-5 w-5" />
-          Orçamento por Categoria
+          Gastos por Categoria
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {categoryBudget.map((item, index) => (
+          {categorySpending.map((item, index) => (
             <div key={index} className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="font-medium">{item.categoria}</span>
-                <span className={`text-sm font-medium ${getCategoryAlert(item.percentual)}`}>
-                  {item.percentual.toFixed(1)}%
+                <span className="font-medium">{item.name}</span>
+                <span className="text-sm text-gray-600">
+                  R$ {item.total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{formatCurrency(item.gasto)} gasto</span>
-                <span>{formatCurrency(item.orcado)} orçado</span>
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>{item.count} transações</span>
+                <span>{item.percentage?.toFixed(1)}%</span>
               </div>
-              <Progress 
-                value={Math.min(item.percentual, 100)} 
-                className={`h-2 ${getProgressColor(item.percentual)}`}
-              />
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full"
+                  style={{ width: `${Math.min(item.percentage || 0, 100)}%` }}
+                />
+              </div>
             </div>
           ))}
-          
-          {categoryBudget.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <PieChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhuma categoria com gastos encontrada</p>
-              <p className="text-sm">Adicione transações para ver o orçamento por categoria</p>
+          {categorySpending.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-2">Nenhuma categoria com gastos encontrada</p>
+              <p className="text-sm text-gray-400">
+                Adicione transações para ver os gastos por categoria
+              </p>
             </div>
           )}
         </div>

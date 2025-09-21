@@ -501,7 +501,7 @@ export function GoalMoneyManager({
                     <SelectContent>
                       {accounts
                         .filter(
-                          (account) => account.id && account.id.trim() !== "",
+                          (account) => account.id && String(account.id).trim() !== "",
                         )
                         .map((account) => (
                           <SelectItem key={account.id} value={account.id}>
@@ -594,10 +594,10 @@ export function GoalMoneyManager({
                     <SelectContent>
                       {accounts
                         .filter(
-                          (account) => account.id && account.id.trim() !== "",
+                          (account) => account.id && String(account.id).trim() !== "",
                         )
                         .map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
+                          <SelectItem key={account.id} value={String(account.id)}>
                             {account.name} - R$ {account.balance.toFixed(2)}
                           </SelectItem>
                         ))}

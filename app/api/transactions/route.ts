@@ -1,34 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const queryString = searchParams.toString();
-    const url = queryString 
-      ? `${BACKEND_URL}/api/transactions?${queryString}`
-      : `${BACKEND_URL}/api/transactions`;
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : 50;
+    const page = searchParams.get("page") ? parseInt(searchParams.get("page")!) : 1;
+    const skip = (page - 1) * limit;
 
-    const response = await fetch(url, {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        // Repassar headers de autenticação se existirem
-        ...(request.headers.get("authorization") && {
-          authorization: request.headers.get("authorization")!,
-        }),
-        ...(request.headers.get("cookie") && {
-          cookie: request.headers.get("cookie")!,
-        }),
+    // Buscar transações com paginação
+    const transactions = await prisma.transaction.findMany({
+      take: limit,
+      skip: skip,
+      orderBy: {
+        date: 'desc'
       },
+      include: {
+        entries: {
+          include: {
+            accounts: true,
+            categories: true
+          }
+        },
+        users: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
+      }
     });
 
-    const data = await response.json();
+    const total = await prisma.transaction.count();
 
-    return NextResponse.json(data, {
-      status: response.status,
+    return NextResponse.json({
+      success: true,
+      data: transactions,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    }, {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -36,9 +50,13 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro no proxy de transactions:", error);
+    console.error("Erro ao buscar transações:", error);
     return NextResponse.json(
-      { error: "Erro interno do servidor" },
+      { 
+        success: false,
+        error: "Erro interno do servidor",
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      },
       { status: 500 }
     );
   }
@@ -47,26 +65,64 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    
+    // Validação básica dos dados necessários
+    if (!body.description || !body.date || !body.created_by || !body.tenant_id || !body.entries) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: "Dados obrigatórios não fornecidos",
+          required: ["description", "date", "created_by", "tenant_id", "entries"]
+        },
+        { status: 400 }
+      );
+    }
 
-    const response = await fetch(`${BACKEND_URL}/api/transactions`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(request.headers.get("authorization") && {
-          authorization: request.headers.get("authorization")!,
-        }),
-        ...(request.headers.get("cookie") && {
-          cookie: request.headers.get("cookie")!,
-        }),
+    // Criar transação com entries
+    const transaction = await prisma.transaction.create({
+      data: {
+        description: body.description,
+        date: new Date(body.date),
+        status: body.status || "COMPLETED",
+        tags: body.tags,
+        metadata: body.metadata ? JSON.stringify(body.metadata) : null,
+        created_by: body.created_by,
+        tenant_id: body.tenant_id,
+        external_id: body.external_id,
+        reference: body.reference,
+        entries: {
+          create: body.entries.map((entry: any) => ({
+            id: entry.id || crypto.randomUUID(),
+            account_id: entry.account_id,
+            category_id: entry.category_id,
+            debit: entry.debit || 0,
+            credit: entry.credit || 0,
+            description: entry.description
+          }))
+        }
       },
-      body: JSON.stringify(body),
+      include: {
+        entries: {
+          include: {
+            accounts: true,
+            categories: true
+          }
+        },
+        users: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
+      }
     });
 
-    const data = await response.json();
-
-    return NextResponse.json(data, {
-      status: response.status,
+    return NextResponse.json({
+      success: true,
+      data: transaction,
+      message: "Transação criada com sucesso"
+    }, {
+      status: 201,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -74,9 +130,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro no proxy de transactions POST:", error);
+    console.error("Erro ao criar transação:", error);
     return NextResponse.json(
-      { error: "Erro interno do servidor" },
+      { 
+        success: false,
+        error: "Erro interno do servidor",
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      },
       { status: 500 }
     );
   }

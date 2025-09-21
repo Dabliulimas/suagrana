@@ -508,7 +508,7 @@ export function RecurringBillsManager({
                     <SelectContent>
                       {accounts
                         .filter(
-                          (account) => account.id && account.id.trim() !== "",
+                          (account) => account.id && String(account.id).trim() !== "",
                         )
                         .map((account) => (
                           <SelectItem key={account.id} value={account.id}>

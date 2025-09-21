@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useAccounts, useTransactions } from "../contexts/unified-context";
+import { useAccounts } from "../contexts/unified-context";
+import { useTransactions, useUpdateTransaction, useDeleteTransaction } from "../hooks/use-optimized-transactions";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -50,8 +51,13 @@ export function UnifiedTransactionList({
     notes: ''
   });
   
-  // Usar o hook useTransactions do contexto unificado
-  const { transactions: allTransactions, isLoading } = useTransactions();
+  // Usar o hook useTransactions otimizado do React Query
+  const { data: transactionsData, isLoading } = useTransactions();
+  const allTransactions = transactionsData?.transactions || [];
+  
+  // Hooks para operações
+  const updateTransactionMutation = useUpdateTransaction();
+  const deleteTransactionMutation = useDeleteTransaction();
   
   // Estado dos dados filtrados
   const [filteredData, setFilteredData] = useState<any[]>([]);
@@ -97,20 +103,20 @@ export function UnifiedTransactionList({
     return account?.name || "Conta não encontrada";
   };
 
-  // EXCLUSÃO SIMPLES - DIRETO NO LOCALSTORAGE
-  const handleDeleteTransaction = (id: string) => {
+  // EXCLUSÃO USANDO REACT QUERY
+  const handleDeleteTransaction = async (id: string) => {
     if (!window.confirm('Tem certeza que deseja excluir esta transação?')) {
       return;
     }
     
     console.log('Excluindo transação:', id);
     
-    const success = deleteTransactionFromStorage(id);
-    
-    if (success) {
+    try {
+      await deleteTransactionMutation.mutateAsync(id);
       toast.success("Transação excluída com sucesso!");
       onUpdate?.();
-    } else {
+    } catch (error) {
+      console.error('Erro ao excluir transação:', error);
       toast.error("Erro ao excluir transação");
     }
   };
@@ -128,27 +134,10 @@ export function UnifiedTransactionList({
     setIsEditModalOpen(true);
   };
 
-  /**
-   * @deprecated localStorage não é mais usado - dados ficam no banco
-   */
-  // IMPLEMENTAÇÃO SUPER SIMPLES - SEM COMPLEXIDADE
-  const updateTransactionInStorage = (id: string, updatedData: any) => {
-    console.log('updateTransactionInStorage foi removida - localStorage não é mais usado');
-    // Dados agora são atualizados no banco via DataService
-    return false;
-  };
 
-  /**
-   * @deprecated localStorage não é mais usado - dados ficam no banco
-   */
-  const deleteTransactionFromStorage = (id: string) => {
-    console.log('deleteTransactionFromStorage foi removida - localStorage não é mais usado');
-    // Dados agora são deletados no banco via DataService
-    return false;
-  };
 
-  // EDIÇÃO SIMPLES - FUNCIONA SEMPRE
-  const handleSaveEdit = () => {
+  // EDIÇÃO USANDO REACT QUERY
+  const handleSaveEdit = async () => {
     if (!editFormData.description || !editFormData.amount || !editFormData.category) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
@@ -172,10 +161,12 @@ export function UnifiedTransactionList({
       notes: editFormData.notes || ''
     };
 
-    // Atualizar direto no localStorage
-    const success = updateTransactionInStorage(editingTransaction.id, updatedData);
-    
-    if (success) {
+    try {
+      await updateTransactionMutation.mutateAsync({
+        id: editingTransaction.id,
+        data: updatedData
+      });
+      
       toast.success("Transação editada com sucesso!");
       
       // Limpar estado do modal
@@ -190,7 +181,8 @@ export function UnifiedTransactionList({
       });
       
       onUpdate?.();
-    } else {
+    } catch (error) {
+      console.error('Erro ao editar transação:', error);
       toast.error("Erro ao editar transação");
     }
   };
