@@ -54,6 +54,7 @@ export {
 // Hook de sincronização global
 export {
   useGlobalSync,
+  useSyncStatus,
 } from "./use-global-sync";
 
 // Guia de migração:
