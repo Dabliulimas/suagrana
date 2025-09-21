@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
 import { body, query, param, validationResult } from "express-validator";
 import { PrismaClient, GoalStatus } from "@prisma/client";
 import {
@@ -206,7 +206,7 @@ const listGoalsValidation = [
 ];
 
 // Função para validar entrada
-const validateInput = (req: Request, res: Response, next: NextFunction) => {
+const validateInput = (req: any, res: any, next: any) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorMessages = errors
@@ -246,7 +246,7 @@ router.get(
   tenantMiddleware,
   listGoalsValidation,
   validateInput,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req, res) => {
     if (!req.tenant) {
       throw new ValidationError("Contexto do tenant não encontrado");
     }
@@ -368,7 +368,7 @@ router.get(
   "/dashboard",
   authMiddleware,
   tenantMiddleware,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req, res) => {
     if (!req.tenant) {
       throw new ValidationError("Contexto do tenant não encontrado");
     }
@@ -498,7 +498,7 @@ router.get(
   tenantMiddleware,
   param("id").isUUID().withMessage("ID da meta deve ser um UUID válido"),
   validateInput,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req, res) => {
     const { id } = req.params;
     if (!req.tenant) {
       throw new ValidationError("Contexto do tenant não encontrado");
@@ -562,7 +562,7 @@ router.post(
   createGoalValidation,
   validateInput,
   invalidateGoalCache,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req, res) => {
     const {
       name,
       description,
@@ -653,7 +653,7 @@ router.put(
   updateGoalValidation,
   validateInput,
   invalidateGoalCache,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req, res) => {
     const { id } = req.params;
     if (!req.tenant) {
       throw new ValidationError("Contexto do tenant não encontrado");
@@ -766,7 +766,7 @@ router.post(
   addProgressValidation,
   validateInput,
   invalidateGoalCache,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { amount, description, date } = req.body;
     if (!req.tenant) {
@@ -840,7 +840,7 @@ router.delete(
   param("id").isUUID().withMessage("ID da meta deve ser um UUID válido"),
   validateInput,
   invalidateGoalCache,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req, res) => {
     const { id } = req.params;
     if (!req.tenant) {
       throw new ValidationError("Contexto do tenant não encontrado");
@@ -872,7 +872,7 @@ router.delete(
 // GET /api/goals/progress - Resumo do progresso das metas
 router.get(
   "/progress",
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req, res) => {
     const userId = "demo-user-1";
 
     // Buscar todas as metas do usuário
