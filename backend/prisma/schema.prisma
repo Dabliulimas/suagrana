@@ -37,6 +37,7 @@ model Tenant {
   dividends       Dividend[]
   goals           Goal[]
   contacts        Contact[]
+  trips           Trip[]
 
   @@map("tenants")
 }
@@ -79,6 +80,7 @@ model User {
   budgets     Budget[]
   recurringRules RecurringRule[]
   contacts    Contact[]
+  trips       Trip[]
 
   @@map("users")
 }
@@ -380,6 +382,28 @@ model Contact {
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("contacts")
+}
+
+model Trip {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  userId      String   @map("user_id")
+  name        String
+  destination String
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  budget      Decimal
+  spent       Decimal  @default(0)
+  description String?
+  status      String   @default("PLANNED") // PLANNED, ACTIVE, COMPLETED, CANCELLED
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trips")
 }
 
 // Note: SQLite doesn't support enums, so we use strings with comments indicating the valid values

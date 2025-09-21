@@ -9,8 +9,8 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
-    serverComponentsExternalPackages: ["@prisma/client"],
   },
+  serverExternalPackages: ["@prisma/client"],
   images: {
     unoptimized: true,
     domains: ['localhost'],
@@ -27,7 +27,6 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   reactStrictMode: false,
-  swcMinify: true,
   output: 'standalone',
   
   // Configurações de ambiente

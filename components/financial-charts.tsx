@@ -61,8 +61,12 @@ interface ChartData {
 }
 
 export function FinancialCharts() {
-  const { transactions } = useTransactions();
-  const { accounts } = useAccounts();
+  // Usar os novos hooks otimizados
+  const { data: transactionsData } = useTransactions();
+  const { data: accountsData } = useAccounts();
+  
+  const transactions = transactionsData?.transactions || [];
+  const accounts = accountsData?.accounts || [];
   const [selectedPeriod, setSelectedPeriod] = useState("6months");
   const [selectedChart, setSelectedChart] = useState("overview");
   const [isMounted, setIsMounted] = useState(false);

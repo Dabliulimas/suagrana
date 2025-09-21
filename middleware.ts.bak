@@ -1,17 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Função middleware principal
-function middlewareHandler(request: NextRequest) {
-  // Middleware simples que apenas permite todas as requisições
+// Middleware simples
+export function middleware(request: NextRequest) {
   return NextResponse.next()
 }
-
-// Exportação nomeada para Next.js
-export const middleware = middlewareHandler
-
-// Exportação default para compatibilidade com Netlify Edge Functions
-export default middlewareHandler
 
 // Configuração do matcher
 export const config = {

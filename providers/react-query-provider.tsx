@@ -1,5 +1,5 @@
 /**
- * PROVIDER DO REACT QUERY CONFIGURADO
+ * PROVIDER DO REACT QUERY OTIMIZADO PARA DADOS FINANCEIROS
  */
 
 "use client";
@@ -18,13 +18,38 @@ export function ReactQueryProvider({ children }: ReactQueryProviderProps) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minuto
-            gcTime: 10 * 60 * 1000, // 10 minutos
-            retry: 1,
-            refetchOnWindowFocus: false,
+            // Dados financeiros ficam frescos por 5 minutos
+            staleTime: 5 * 60 * 1000, // 5 minutos
+            // Cache mantido por 30 minutos
+            gcTime: 30 * 60 * 1000, // 30 minutos
+            // Retry mais agressivo para dados críticos
+            retry: (failureCount, error: any) => {
+              // Não retry em erros de autenticação
+              if (error?.status === 401 || error?.status === 403) {
+                return false;
+              }
+              // Máximo 3 tentativas para outros erros
+              return failureCount < 3;
+            },
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+            // Refetch quando a janela ganha foco (importante para dados financeiros)
+            refetchOnWindowFocus: true,
+            // Refetch quando reconecta à internet
+            refetchOnReconnect: true,
+            // Não refetch automaticamente quando monta
+            refetchOnMount: true,
           },
           mutations: {
-            retry: 1,
+            // Retry para mutações críticas
+            retry: (failureCount, error: any) => {
+              // Não retry em erros de validação ou autenticação
+              if (error?.status === 400 || error?.status === 401 || error?.status === 403 || error?.status === 422) {
+                return false;
+              }
+              // Máximo 2 tentativas para outros erros
+              return failureCount < 2;
+            },
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
           },
         },
       }),
@@ -33,7 +58,11 @@ export function ReactQueryProvider({ children }: ReactQueryProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      <ReactQueryDevtools 
+        initialIsOpen={false} 
+        buttonPosition="bottom-left"
+        position="left"
+      />
     </QueryClientProvider>
   );
 }

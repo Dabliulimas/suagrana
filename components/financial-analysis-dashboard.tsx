@@ -27,7 +27,16 @@ import {
   Target,
   Zap,
 } from "lucide-react";
-import { useFinancialData } from "../hooks/use-financial-data";
+// Substituindo pelos novos hooks otimizados
+import { 
+  useTransactions, 
+  useTransactionStats, 
+  useRecentTransactions 
+} from "../hooks/use-optimized-transactions";
+import { 
+  useAccounts, 
+  useAccountsSummary 
+} from "../hooks/use-optimized-accounts";
 import { useIncomeSettings } from "../hooks/use-income-settings";
 import { IncomeConfiguration } from "./income-configuration";
 
@@ -39,7 +48,27 @@ export function FinancialAnalysisDashboard({
   className,
 }: FinancialAnalysisDashboardProps) {
   const { getTotalMonthlyIncome, getIncomeStatus } = useIncomeSettings();
-  const { transactions, accounts, goals, isLoading } = useFinancialData();
+  
+  // Usar os novos hooks otimizados
+  const { 
+    data: transactionsData, 
+    isLoading: isLoadingTransactions 
+  } = useTransactions();
+  
+  const { 
+    data: statsData, 
+    isLoading: isLoadingStats 
+  } = useTransactionStats();
+  
+  const { 
+    data: accountsData, 
+    isLoading: isLoadingAccounts 
+  } = useAccounts();
+
+  // Extrair dados dos hooks
+  const transactions = transactionsData?.transactions || [];
+  const accounts = accountsData?.accounts || [];
+  const isLoading = isLoadingTransactions || isLoadingStats || isLoadingAccounts;
 
   const [selectedPeriod, setSelectedPeriod] = useState<
     "3months" | "6months" | "12months"

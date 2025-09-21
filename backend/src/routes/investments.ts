@@ -7,6 +7,8 @@ import {
   ConflictError,
   asyncHandler,
 } from "@/middleware/errorHandler";
+import { authMiddleware } from "@/middleware/auth";
+import { tenantMiddleware } from "@/middleware/tenant";
 
 const invalidateInvestmentCache = (req: any, res: any, next: any) => {
   // Cache invalidation placeholder
@@ -23,10 +25,6 @@ type InvestmentType = "STOCK" | "BOND" | "FUND" | "ETF" | "CRYPTO" | "REAL_ESTAT
 
 const router = Router();
 const prisma = new PrismaClient();
-
-// Usuário real existente para testes
-const DEMO_USER_ID = "01f4a2c4-3763-4a80-a5c4-da2fd5a6d352";
-const DEMO_TENANT_ID = "demo-tenant-1";
 
 // Rota de teste
 router.get("/test", (req, res) => {
@@ -75,79 +73,7 @@ router.get("/test-users", asyncHandler(async (req, res) => {
   }
 }));
 
-// Rota POST sem validação para teste
-router.post("/test-create", asyncHandler(async (req, res) => {
-  const {
-    symbol,
-    name,
-    type,
-    quantity,
-    purchasePrice,
-    currentPrice,
-    purchaseDate,
-  } = req.body;
-  // Usar um usuário real existente
-  const userId = "01f4a2c4-3763-4a80-a5c4-da2fd5a6d352";
-  const tenantId = "demo-tenant-1";
 
-  try {
-    // Primeiro, vamos verificar se o tenant existe, se não, criar um
-    let tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId }
-    });
-
-    if (!tenant) {
-      tenant = await prisma.tenant.create({
-        data: {
-          id: tenantId,
-          name: "Demo Tenant",
-          slug: "demo-tenant",
-          settings: "{}",
-        }
-      });
-    }
-
-    const investment = await prisma.investment.create({
-      data: {
-        userId,
-        tenantId,
-        symbol: symbol.toUpperCase(),
-        name,
-        type,
-        quantity: parseFloat(quantity),
-        purchasePrice: parseFloat(purchasePrice),
-        currentPrice: currentPrice
-          ? parseFloat(currentPrice)
-          : parseFloat(purchasePrice),
-        purchaseDate: new Date(purchaseDate),
-      },
-      select: {
-        id: true,
-        symbol: true,
-        name: true,
-        type: true,
-        quantity: true,
-        purchasePrice: true,
-        currentPrice: true,
-        purchaseDate: true,
-        createdAt: true,
-      },
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Investimento criado com sucesso (teste)",
-      data: { investment },
-    });
-  } catch (error) {
-    console.error("Erro ao criar investimento:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erro interno do servidor",
-      error: error.message,
-    });
-  }
-}));
 
 // Validações para investimentos
 const createInvestmentValidation = [
@@ -312,10 +238,16 @@ const validateInput = (req: any, res: any, next: any) => {
 // GET /api/investments - Listar investimentos
 router.get(
   "/",
+  authMiddleware,
+  tenantMiddleware,
   listInvestmentsValidation,
   validateInput,
   asyncHandler(async (req, res) => {
-    const userId = DEMO_USER_ID;
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const userId = req.tenant.userId;
     const { type, search, page = "1", limit = "20" } = req.query;
 
     const pageNum = parseInt(page as string);
@@ -442,6 +374,8 @@ router.get(
 // GET /api/investments/dividends - Listar todos os dividendos
 router.get(
   "/dividends",
+  authMiddleware,
+  tenantMiddleware,
   query("year")
     .optional()
     .isInt({ min: 2000, max: 2100 })
@@ -460,7 +394,11 @@ router.get(
     .withMessage("Limite deve ser um número entre 1 e 100"),
   validateInput,
   asyncHandler(async (req, res) => {
-    const userId = DEMO_USER_ID;
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const userId = req.tenant.userId;
     const { year, month, page = "1", limit = "20" } = req.query;
 
     // Construir filtros de data
@@ -563,8 +501,14 @@ router.get(
 // GET /api/investments/portfolio/summary - Resumo da carteira
 router.get(
   "/portfolio/summary",
+  authMiddleware,
+  tenantMiddleware,
   asyncHandler(async (req, res) => {
-    const userId = DEMO_USER_ID;
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const userId = req.tenant.userId;
 
     try {
       const investments = await prisma.investment.findMany({
@@ -634,14 +578,18 @@ router.get(
 
 
 // POST /api/investments/:id/dividends - Adicionar dividendo
-router.post("/:id/dividends", createDividendValidation, validateInput, asyncHandler(async (req, res) => {
+router.post("/:id/dividends", authMiddleware, tenantMiddleware, createDividendValidation, validateInput, asyncHandler(async (req, res) => {
+  if (!req.tenant) {
+    throw new ValidationError("Contexto do tenant não encontrado");
+  }
+
   const { id } = req.params;
   const {
     amount,
     paymentDate,
     type = "CASH",
   } = req.body;
-  const userId = DEMO_USER_ID;
+  const userId = req.tenant.userId;
 
   // Verificar se investimento existe e pertence ao usuário
   const investment = await prisma.investment.findFirst({
@@ -654,7 +602,7 @@ router.post("/:id/dividends", createDividendValidation, validateInput, asyncHand
 
   const dividend = await prisma.dividend.create({
     data: {
-      tenantId: DEMO_TENANT_ID,
+      tenantId: req.tenant.id,
       investmentId: id,
       amount: parseFloat(amount),
       paymentDate: new Date(paymentDate),
@@ -679,14 +627,20 @@ router.post("/:id/dividends", createDividendValidation, validateInput, asyncHand
 // GET /api/investments/:id - Obter investimento por ID
 router.get(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id")
     .isLength({ min: 20, max: 30 })
     .matches(/^[a-z0-9]+$/)
     .withMessage("ID do investimento deve ser um CUID válido"),
   validateInput,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const { id } = req.params;
-    const userId = DEMO_USER_ID;
+    const userId = req.tenant.userId;
 
     const investment = await prisma.investment.findFirst({
       where: { id, userId },
@@ -750,10 +704,16 @@ router.get(
 // POST /api/investments - Criar novo investimento
 router.post(
   "/",
+  authMiddleware,
+  tenantMiddleware,
   createInvestmentValidation,
   validateInput,
   invalidateInvestmentCache,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const {
       symbol,
       name,
@@ -763,25 +723,9 @@ router.post(
       currentPrice,
       purchaseDate,
     } = req.body;
-    // Usar o usuário real existente
-    const userId = DEMO_USER_ID;
-    const tenantId = DEMO_TENANT_ID;
-
-    // Verificar se o tenant existe, se não, criar
-    const existingTenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-    });
-
-    if (!existingTenant) {
-      await prisma.tenant.create({
-        data: {
-          id: tenantId,
-          name: "Demo Tenant",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
+    
+    const userId = req.tenant.userId;
+    const tenantId = req.tenant.id;
 
     // Verificar se já existe investimento com mesmo símbolo
     const existingInvestment = await prisma.investment.findFirst({
@@ -837,6 +781,8 @@ router.post(
 // PUT /api/investments/:id - Atualizar investimento
 router.put(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id")
     .isLength({ min: 20, max: 30 })
     .matches(/^[a-z0-9]+$/)
@@ -845,8 +791,12 @@ router.put(
   validateInput,
   invalidateInvestmentCache,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const { id } = req.params;
-    const userId = DEMO_USER_ID;
+    const userId = req.tenant.userId;
     const updateData = req.body;
 
     // Verificar se investimento existe e pertence ao usuário
@@ -921,6 +871,8 @@ router.put(
 // DELETE /api/investments/:id - Deletar investimento
 router.delete(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id")
     .isLength({ min: 20, max: 30 })
     .matches(/^[a-z0-9]+$/)
@@ -928,8 +880,12 @@ router.delete(
   validateInput,
   invalidateInvestmentCache,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const { id } = req.params;
-    const userId = DEMO_USER_ID;
+    const userId = req.tenant.userId;
 
     // Verificar se investimento existe e pertence ao usuário
     const investment = await prisma.investment.findFirst({

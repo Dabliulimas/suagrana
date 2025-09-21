@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useFinancialData } from "../hooks/use-financial-data";
+// Substituindo pelos novos hooks otimizados
+import { useTransactions } from "../hooks/use-optimized-transactions";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
@@ -17,7 +18,15 @@ interface BudgetItem {
 
 export function SimpleBudget() {
   const [budgets, setBudgets] = useState<BudgetItem[]>([]);
-  const { currentMonthTransactions, loading } = useFinancialData();
+  // Usar os novos hooks otimizados
+  const { data: transactionsData, isLoading: loading } = useTransactions();
+  const transactions = transactionsData?.transactions || [];
+  
+  // Filtrar transações do mês atual
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonthTransactions = transactions.filter(t => 
+    t.date && t.date.startsWith(currentMonth)
+  );
 
   useEffect(() => {
     // Calcular orçamento baseado nas transações atuais

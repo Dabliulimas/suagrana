@@ -11,10 +11,17 @@ export const prisma = new PrismaClient({
 // Inicializar cliente Redis (será configurado apenas se disponível)
 export let redisClient: any = null;
 let redisAvailable = false;
+let redisErrorLogged = false;
 
 // Função para inicializar Redis
 const initializeRedis = async () => {
   try {
+    // Verificar se Redis está configurado
+    if (!config.redis.url || config.redis.url === "redis://localhost:6379") {
+      console.log("ℹ️ Redis não configurado, continuando sem cache");
+      return false;
+    }
+
     const client = createClient({
       url: config.redis.url,
       password: config.redis.password,
@@ -22,12 +29,16 @@ const initializeRedis = async () => {
 
     // Event handlers para Redis
     client.on("error", (err) => {
-      console.warn("⚠️ Redis Error (ignorando):", err.message);
+      if (!redisErrorLogged) {
+        console.warn("⚠️ Redis Error (ignorando):", err.message);
+        redisErrorLogged = true;
+      }
     });
 
     client.on("connect", () => {
       console.log("✅ Redis conectado com sucesso");
       redisAvailable = true;
+      redisErrorLogged = false;
     });
 
     client.on("ready", () => {

@@ -37,13 +37,20 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Interceptor de Request - Adiciona token automaticamente
+    // Interceptor de Request - Adiciona token e tenant automaticamente
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getAccessToken();
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        // Adiciona o header x-tenant-id se disponível
+        const tenantId = this.getTenantId();
+        if (tenantId && config.headers) {
+          config.headers['x-tenant-id'] = tenantId;
+        }
+        
         return config;
       },
       (error) => {
@@ -125,16 +132,27 @@ class ApiClient {
     return localStorage.getItem('refreshToken');
   }
 
+  private getTenantId(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('tenantId') || 'demo-tenant-1'; // Fallback para o tenant demo
+  }
+
   private setTokens(tokens: AuthTokens): void {
     if (typeof window === 'undefined') return;
     localStorage.setItem('accessToken', tokens.accessToken);
     localStorage.setItem('refreshToken', tokens.refreshToken);
   }
 
+  private setTenantId(tenantId: string): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('tenantId', tenantId);
+  }
+
   private clearTokens(): void {
     if (typeof window === 'undefined') return;
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('tenantId');
   }
 
   private redirectToLogin(): void {
@@ -204,6 +222,19 @@ class ApiClient {
           refreshToken: response.data.data.refreshToken,
         };
         this.setTokens(tokens);
+        
+        // Buscar dados completos do usuário incluindo tenants
+        try {
+          const userResponse = await this.getCurrentUser();
+          if (userResponse.success && userResponse.data.user.userTenants?.length > 0) {
+            // Armazenar o primeiro tenant como padrão
+            const defaultTenant = userResponse.data.user.userTenants[0];
+            this.setTenantId(defaultTenant.tenantId);
+          }
+        } catch (error) {
+          console.warn('⚠️ Erro ao buscar dados do usuário após login:', error);
+        }
+        
         return tokens;
       } else {
         throw new Error('Login failed');

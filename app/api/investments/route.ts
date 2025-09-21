@@ -22,6 +22,10 @@ export async function GET(request: NextRequest) {
         ...(request.headers.get("cookie") && {
           cookie: request.headers.get("cookie")!,
         }),
+        // Adicionar header x-tenant-id obrigatório
+        ...(request.headers.get("x-tenant-id") && {
+          "x-tenant-id": request.headers.get("x-tenant-id")!,
+        }),
       },
     });
 
@@ -58,6 +62,10 @@ export async function POST(request: NextRequest) {
         }),
         ...(request.headers.get("cookie") && {
           cookie: request.headers.get("cookie")!,
+        }),
+        // Adicionar header x-tenant-id obrigatório
+        ...(request.headers.get("x-tenant-id") && {
+          "x-tenant-id": request.headers.get("x-tenant-id")!,
         }),
       },
       body: JSON.stringify(body),

@@ -18,7 +18,16 @@ import {
   RefreshCw,
   AlertTriangle
 } from 'lucide-react';
-import { useFinancialData } from '../../../hooks/use-financial-data';
+// Substituindo pelos novos hooks otimizados
+import { 
+  useTransactions, 
+  useTransactionStats, 
+  useRecentTransactions 
+} from '../../../hooks/use-optimized-transactions';
+import { 
+  useAccounts, 
+  useAccountsSummary 
+} from '../../../hooks/use-optimized-accounts';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -40,48 +49,54 @@ const getCategoryAlert = (percentual: number) => {
 };
 
 export default function FinancialDashboard() {
+  // Usar os novos hooks otimizados
   const { 
-    transactions, 
-    accounts, 
-    goals, 
-    investments, 
-    isLoading, 
-    refreshData 
-  } = useFinancialData();
+    data: transactionsData, 
+    isLoading: isLoadingTransactions,
+    refetch: refreshTransactions 
+  } = useTransactions();
+
+  const { 
+    data: statsData, 
+    isLoading: isLoadingStats 
+  } = useTransactionStats();
+
+  const { 
+    data: accountsData, 
+    isLoading: isLoadingAccounts,
+    refetch: refreshAccounts 
+  } = useAccounts();
+
+  const { 
+    data: accountsSummary, 
+    isLoading: isLoadingSummary 
+  } = useAccountsSummary();
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const loading = isLoading;
+  const loading = isLoadingTransactions || isLoadingStats || isLoadingAccounts || isLoadingSummary;
 
-  // Calcular dados do mês atual
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const currentMonthTransactions = (transactions || []).filter(
-    (t) => t.date && t.date.startsWith(currentMonth)
-  );
+  // Extrair dados dos hooks
+  const transactions = transactionsData?.transactions || [];
+  const accounts = accountsData?.accounts || [];
 
-  const totalIncome = currentMonthTransactions
-    .filter((t) => t.type === 'income')
-    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  // Usar dados calculados do React Query quando disponíveis
+  const totalIncome = statsData?.income || 0;
+  const totalExpenses = statsData?.expenses || 0;
+  const monthlyBalance = statsData?.balance || 0;
 
-  const totalExpenses = currentMonthTransactions
-    .filter((t) => t.type === 'expense' || t.type === 'shared')
-    .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0);
-
-  const monthlyBalance = totalIncome - totalExpenses;
-
-  // Calcular patrimônio
-  const totalBalance = (accounts || []).reduce(
-    (sum, acc) => sum + Number(acc.balance || 0),
-    0
-  );
-
-  const totalInvestments = (investments || []).reduce(
-    (sum, inv) => sum + Number(inv.currentValue || inv.amount || 0),
-    0
-  );
-
+  // Calcular patrimônio usando dados do summary
+  const totalBalance = accountsSummary?.totalBalance || 0;
+  const totalInvestments = 0; // TODO: Implementar hook para investimentos
+  const investments = []; // TODO: Implementar hook para investimentos
   const netWorth = totalBalance + totalInvestments;
+
+  // Filtrar transações do mês atual
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonthTransactions = transactions.filter(t => 
+    t.date && t.date.startsWith(currentMonth)
+  );
 
   // Calcular métricas
   const incomeTransactionCount = currentMonthTransactions.filter(t => t.type === 'income').length;
@@ -90,7 +105,8 @@ export default function FinancialDashboard() {
   const averageExpense = expenseTransactionCount > 0 ? totalExpenses / expenseTransactionCount : 0;
   const savingsRate = totalIncome > 0 ? (monthlyBalance / totalIncome) * 100 : 0;
 
-  // Metas ativas
+  // Metas ativas (TODO: Implementar hook para goals)
+  const goals: any[] = [];
   const activeGoals = (goals || []).filter(g => g.status === 'active');
   const completedGoals = (goals || []).filter(g => g.status === 'completed');
   const averageProgress = activeGoals.length > 0 
@@ -146,7 +162,10 @@ export default function FinancialDashboard() {
   });
 
   const refreshAllData = async () => {
-    await refreshData();
+    await Promise.all([
+      refreshTransactions(),
+      refreshAccounts()
+    ]);
   };
 
   if (loading) {

@@ -22,6 +22,7 @@ import investmentRoutes from "@/routes/investments";
 import goalRoutes from "@/routes/goals";
 import reportRoutes from "@/routes/reports";
 import contactRoutes from "@/routes/contacts";
+import tripRoutes from "@/routes/trips";
 // import categoriesRoutes from "@/routes/categories";
 import healthRoutes from "@/routes/health";
 import testRoutes from "@/routes/test";
@@ -155,6 +156,7 @@ class Server {
     this.app.use("/api/goals", goalRoutes);
     this.app.use("/api/reports", reportRoutes);
     this.app.use("/api/contacts", contactRoutes);
+    this.app.use("/api/trips", tripRoutes);
 
     // Rota 404
     this.app.use("*", (req, res) => {

@@ -7,6 +7,7 @@ import { useAccounts } from "../../contexts/unified-context";
 import { useInvestments } from "./use-investments";
 import { useGoals } from "./use-goals";
 import { useTrips } from "./use-trips";
+import { apiClient } from "../../lib/api-client";
 import type {
   Transaction,
   Account,
@@ -194,9 +195,8 @@ export function useDashboardMetrics() {
   const query = useQuery({
     queryKey: queryKeys.reports.dashboard(),
     queryFn: async () => {
-      const res = await fetch("/api/reports/dashboard?userId=1");
-      if (!res.ok) throw new Error("Falha ao carregar resumo do dashboard");
-      return res.json();
+      const result = await apiClient.get("/api/reports/dashboard");
+      return result.data;
     },
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,

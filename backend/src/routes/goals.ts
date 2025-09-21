@@ -9,6 +9,8 @@ import {
 } from "@/middleware/errorHandler";
 
 import { invalidateGoalCache } from "@/middleware/cacheInvalidation";
+import { authMiddleware } from "@/middleware/auth";
+import { tenantMiddleware } from "@/middleware/tenant";
 import { logger, loggerUtils } from "@/utils/logger";
 
 const router = Router();
@@ -240,10 +242,15 @@ const calculateDaysRemaining = (targetDate: Date) => {
 // GET /api/goals - Listar metas
 router.get(
   "/",
+  authMiddleware,
+  tenantMiddleware,
   listGoalsValidation,
   validateInput,
   asyncHandler(async (req, res) => {
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+    const userId = req.tenant.userId;
     const {
       status,
       category,
@@ -359,8 +366,13 @@ router.get(
 // GET /api/goals/dashboard - Dashboard de metas
 router.get(
   "/dashboard",
+  authMiddleware,
+  tenantMiddleware,
   asyncHandler(async (req, res) => {
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+    const userId = req.tenant.userId;
 
     // Buscar todas as metas ativas
     const activeGoals = await prisma.goal.findMany({
@@ -482,11 +494,16 @@ router.get(
 // GET /api/goals/:id - Obter meta específica
 router.get(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da meta deve ser um UUID válido"),
   validateInput,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+    const userId = req.tenant.userId;
 
     const goal = await prisma.goal.findFirst({
       where: { id, createdBy: userId },
@@ -540,6 +557,8 @@ router.get(
 // POST /api/goals - Criar nova meta
 router.post(
   "/",
+  authMiddleware,
+  tenantMiddleware,
   createGoalValidation,
   validateInput,
   invalidateGoalCache,
@@ -555,7 +574,10 @@ router.post(
       isRecurring = false,
       recurringPeriod,
     } = req.body;
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+    const userId = req.tenant.userId;
 
     // Verificar se já existe meta ativa com mesmo nome
     const existingGoal = await prisma.goal.findFirst({
@@ -625,13 +647,18 @@ router.post(
 // PUT /api/goals/:id - Atualizar meta
 router.put(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da meta deve ser um UUID válido"),
   updateGoalValidation,
   validateInput,
   invalidateGoalCache,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+    const userId = req.tenant.userId;
     const updateData = req.body;
 
     // Verificar se meta existe e pertence ao usuário
@@ -733,6 +760,8 @@ router.put(
 // POST /api/goals/:id/progress - Adicionar progresso à meta
 router.post(
   "/:id/progress",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da meta deve ser um UUID válido"),
   addProgressValidation,
   validateInput,
@@ -740,7 +769,10 @@ router.post(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { amount, description, date } = req.body;
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+    const userId = req.tenant.userId;
 
     // Verificar se meta existe e pertence ao usuário
     const goal = await prisma.goal.findFirst({
@@ -803,12 +835,17 @@ router.post(
 // DELETE /api/goals/:id - Deletar meta
 router.delete(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da meta deve ser um UUID válido"),
   validateInput,
   invalidateGoalCache,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+    const userId = req.tenant.userId;
 
     // Verificar se meta existe e pertence ao usuário
     const goal = await prisma.goal.findFirst({

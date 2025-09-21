@@ -75,40 +75,44 @@ const validateInput = (req: any, res: any, next: any) => {
 // GET /api/users/profile - Obter perfil do usuário
 router.get(
   "/profile",
+  authMiddleware,
   asyncHandler(async (req, res) => {
-    // Para demonstração, retorna dados de exemplo
-    const user = {
-      id: "demo-user-1",
-      name: "Usuário Demo",
-      email: "demo@suagrana.com",
-      avatar: "https://via.placeholder.com/150",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      userProfile: {
-        id: "demo-profile-1",
-        monthlyIncome: 5000.00,
-        emergencyReserve: 15000.00,
-        riskProfile: "moderate",
-        financialGoals: ["aposentadoria", "casa_propria"],
-        preferences: {
-          theme: "light",
-          notifications: true,
-          currency: "BRL"
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+    if (!req.user) {
+      throw new ValidationError("Usuário não autenticado");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        userProfile: true,
       },
+    });
+
+    if (!user) {
+      throw new NotFoundError("Usuário");
+    }
+
+    // Buscar contadores reais do banco de dados
+    const [accountsCount, transactionsCount, investmentsCount, goalsCount] = await Promise.all([
+      prisma.account.count({ where: { userId: user.id } }),
+      prisma.transaction.count({ where: { userId: user.id } }),
+      prisma.investment.count({ where: { userId: user.id } }),
+      prisma.goal.count({ where: { userId: user.id } }),
+    ]);
+
+    const userWithCounts = {
+      ...user,
       _count: {
-        accounts: 3,
-        transactions: 25,
-        investments: 5,
-        goals: 2,
+        accounts: accountsCount,
+        transactions: transactionsCount,
+        investments: investmentsCount,
+        goals: goalsCount,
       },
     };
 
     res.json({
       success: true,
-      data: { user },
+      data: { user: userWithCounts },
     });
   }),
 );

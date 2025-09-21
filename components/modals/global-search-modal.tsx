@@ -7,7 +7,9 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { useRouter } from "next/navigation";
-import { useFinancialData } from "../../hooks/use-financial-data";
+// Substituindo pelos novos hooks otimizados
+import { useTransactions } from "../../hooks/use-optimized-transactions";
+import { useAccounts } from "../../hooks/use-optimized-accounts";
 import {
   Search,
   ArrowUpRight,
@@ -46,7 +48,14 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const { transactions, goals, investments, accounts } = useFinancialData();
+  // Usar os novos hooks otimizados
+  const { data: transactionsData } = useTransactions();
+  const { data: accountsData } = useAccounts();
+  
+  const transactions = transactionsData?.transactions || [];
+  const accounts = accountsData?.accounts || [];
+  const goals: any[] = []; // TODO: Implementar hook para goals
+  const investments: any[] = []; // TODO: Implementar hook para investments
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -81,7 +90,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     }, 300); // Debounce search
 
     return () => clearTimeout(searchTimeout);
-  }, [query, transactions, goals, investments, accounts]);
+  }, [query]); // Removed data dependencies to prevent infinite loop
 
   const performSearch = (searchQuery: string) => {
     const searchResults: SearchResult[] = [];

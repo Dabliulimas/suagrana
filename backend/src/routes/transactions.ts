@@ -16,6 +16,8 @@ import { invalidateTransactionCache } from "@/middleware/cacheInvalidation";
 import { logger, loggerUtils } from "@/utils/logger";
 import { DoubleEntryService } from "@/services/doubleEntryService";
 import { AuditService } from "@/services/auditService";
+import authMiddleware from "@/middleware/auth";
+import tenantMiddleware from "@/middleware/tenant";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -200,13 +202,17 @@ const updateAccountBalance = async (
   return newBalance;
 };
 
-// GET /api/transactions - Listar transações
+// GET /api/transactions - Listar transações (temporariamente sem autenticação)
 router.get(
   "/",
+  // authMiddleware, // Temporariamente removido para desenvolvimento
+  // tenantMiddleware, // Temporariamente removido para desenvolvimento
   listTransactionsValidation,
   validateInput,
   asyncHandler(async (req, res) => {
-    const userId = "demo-user-1";
+    // Mock de dados para desenvolvimento
+    const userId = "dev-user-id";
+    const tenantId = "dev-tenant-id";
     const {
       accountId,
       type,
@@ -228,7 +234,7 @@ router.get(
     // Construir filtros
     const where: any = { 
       createdBy: userId,
-      tenantId: "demo-tenant-1" 
+      tenantId: tenantId 
     };
     
     if (status) where.status = status;
@@ -426,14 +432,21 @@ router.get(
 // GET /api/transactions/:id - Obter transação específica
 router.get(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da transação deve ser um UUID válido"),
   validateInput,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = "demo-user-1";
+    
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const { userId, tenantId } = req.tenant;
 
     const transaction = await prisma.transaction.findFirst({
-      where: { id, createdBy: userId, tenantId: "demo-tenant-1" },
+      where: { id, createdBy: userId, tenantId: tenantId },
       select: {
         id: true,
         type: true,
@@ -478,6 +491,8 @@ router.get(
 // POST /api/transactions - Criar nova transação
 router.post(
   "/",
+  authMiddleware,
+  tenantMiddleware,
   createTransactionValidation,
   validateInput,
   invalidateTransactionCache,
@@ -492,8 +507,12 @@ router.post(
       toAccountId,
       tags = [],
     } = req.body;
-    const userId = req.headers.authorization?.replace('Bearer ', '') || "demo-user-1";
-    const tenantId = req.headers['x-tenant-id'] || "demo-tenant-1";
+    
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const { userId, tenantId } = req.tenant;
 
     // Verificar se conta origem existe
     const account = await prisma.account.findFirst({
@@ -579,18 +598,25 @@ router.post(
 // PUT /api/transactions/:id - Atualizar transação
 router.put(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da transação deve ser um UUID válido"),
   updateTransactionValidation,
   validateInput,
   invalidateTransactionCache,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = "demo-user-1";
+    
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const { userId, tenantId } = req.tenant;
     const updateData = req.body;
 
     // Buscar transação atual
     const currentTransaction = await prisma.transaction.findFirst({
-      where: { id, createdBy: userId, tenantId: "demo-tenant-1" },
+      where: { id, createdBy: userId, tenantId: tenantId },
       include: {
         account: true,
         toAccount: true,
@@ -723,16 +749,23 @@ router.put(
 // DELETE /api/transactions/:id - Deletar transação
 router.delete(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da transação deve ser um UUID válido"),
   validateInput,
   invalidateTransactionCache,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = "demo-user-1";
+    
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const { userId, tenantId } = req.tenant;
 
     // Buscar transação
     const transaction = await prisma.transaction.findFirst({
-      where: { id, createdBy: userId, tenantId: "demo-tenant-1" },
+      where: { id, createdBy: userId, tenantId: tenantId },
     });
 
     if (!transaction) {
@@ -785,12 +818,18 @@ router.delete(
 // GET /api/transactions/categories - Listar categorias usadas
 router.get(
   "/categories",
+  authMiddleware,
+  tenantMiddleware,
   asyncHandler(async (req, res) => {
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const { userId, tenantId } = req.tenant;
 
     const categories = await prisma.transaction.groupBy({
       by: ["category", "type"],
-      where: { createdBy: userId, tenantId: "demo-tenant-1" },
+      where: { createdBy: userId, tenantId: tenantId },
       _count: { id: true },
       _sum: { amount: true },
       orderBy: {
@@ -817,13 +856,19 @@ router.get(
 // GET /api/transactions/summary - Resumo de transações
 router.get(
   "/summary",
+  authMiddleware,
+  tenantMiddleware,
   query("period")
     .optional()
     .isIn(["week", "month", "quarter", "year"])
     .withMessage("Período deve ser: week, month, quarter ou year"),
   validateInput,
   asyncHandler(async (req, res) => {
-    const userId = "demo-user-1";
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
+    const { userId, tenantId } = req.tenant;
     const period = (req.query.period as string) || "month";
 
     // Calcular datas
@@ -849,7 +894,7 @@ router.get(
     const transactions = await prisma.transaction.findMany({
       where: {
         createdBy: userId,
-        tenantId: "demo-tenant-1",
+        tenantId: tenantId,
         date: { gte: startDate },
         status: "COMPLETED",
       },

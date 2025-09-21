@@ -11,10 +11,6 @@ async function main() {
 
   // Limpar dados existentes
   console.log("🧹 Limpando dados existentes...");
-  await prisma.auditEvent.deleteMany();
-  await prisma.contact.deleteMany();
-  await prisma.recurringRule.deleteMany();
-  await prisma.budget.deleteMany();
   await prisma.goal.deleteMany();
   await prisma.dividend.deleteMany();
   await prisma.investment.deleteMany();
@@ -22,7 +18,6 @@ async function main() {
   await prisma.transaction.deleteMany();
   await prisma.account.deleteMany();
   await prisma.category.deleteMany();
-  await prisma.userProfile.deleteMany();
   await prisma.userTenant.deleteMany();
   await prisma.user.deleteMany();
   await prisma.tenant.deleteMany();

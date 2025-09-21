@@ -349,6 +349,22 @@ router.get(
             preferences: true,
           },
         },
+        userTenants: {
+          where: {
+            isActive: true,
+          },
+          select: {
+            tenantId: true,
+            role: true,
+            tenant: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
       },
     });
 

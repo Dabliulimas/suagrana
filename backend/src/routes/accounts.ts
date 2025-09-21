@@ -8,6 +8,8 @@ import {
   asyncHandler,
 } from "@/middleware/errorHandler";
 import { invalidateAccountCache } from "@/middleware/cacheInvalidation";
+import { authMiddleware } from "@/middleware/auth";
+import { tenantMiddleware } from "@/middleware/tenant";
 import { logger, loggerUtils } from "@/utils/logger";
 
 const router = Router();
@@ -107,13 +109,16 @@ const validateInput = (req: any, res: any, next: any) => {
   next();
 };
 
-// GET /api/accounts - Listar contas do usuário
+// GET /api/accounts - Listar contas do usuário (temporariamente sem autenticação)
 router.get(
   "/",
+  // authMiddleware, // Temporariamente removido para desenvolvimento
+  // tenantMiddleware, // Temporariamente removido para desenvolvimento
   listAccountsValidation,
   validateInput,
   asyncHandler(async (req, res) => {
-    const tenantId = "demo-tenant-1"; // Usando tenant demo
+    // Mock de dados para desenvolvimento
+    const tenantId = "dev-tenant-id";
     const { type, isActive, page = "1", limit = "20" } = req.query;
 
     const pageNum = parseInt(page as string);
@@ -186,11 +191,17 @@ router.get(
 // GET /api/accounts/:id - Obter conta específica
 router.get(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da conta deve ser um UUID válido"),
   validateInput,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const { id } = req.params;
-    const tenantId = "demo-tenant-1"; // Usando tenant demo
+    const { tenantId } = req.tenant;
 
     const account = await prisma.account.findFirst({
       where: { id, tenantId },
@@ -252,13 +263,18 @@ router.get(
 // POST /api/accounts - Criar nova conta
 router.post(
   "/",
+  authMiddleware,
+  tenantMiddleware,
   createAccountValidation,
   validateInput,
   invalidateAccountCache,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const { name, type, balance = 0, currency = "BRL", description } = req.body;
-    const tenantId = "demo-tenant-1"; // Usando tenant demo
-    const userId = "demo-user-1"; // Usando usuário demo
+    const { tenantId, userId } = req.tenant;
 
     // Verificar se já existe conta com mesmo nome
     const existingAccount = await prisma.account.findFirst({
@@ -307,14 +323,19 @@ router.post(
 // PUT /api/accounts/:id - Atualizar conta
 router.put(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da conta deve ser um UUID válido"),
   updateAccountValidation,
   validateInput,
   invalidateAccountCache,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const { id } = req.params;
-    const tenantId = "demo-tenant-1"; // Usando tenant demo
-    const userId = "demo-user-1"; // Usando usuário demo
+    const { tenantId, userId } = req.tenant;
     const { name, type, currency, description, isActive } = req.body;
 
     // Verificar se conta existe e pertence ao usuário
@@ -376,13 +397,18 @@ router.put(
 // DELETE /api/accounts/:id - Deletar conta
 router.delete(
   "/:id",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da conta deve ser um UUID válido"),
   validateInput,
   invalidateAccountCache,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const { id } = req.params;
-    const tenantId = "demo-tenant-1"; // Usando tenant demo
-    const userId = "demo-user-1"; // Usando usuário demo
+    const { tenantId, userId } = req.tenant;
 
     // Verificar se conta existe e pertence ao usuário
     const account = await prisma.account.findFirst({
@@ -432,6 +458,8 @@ router.delete(
 // GET /api/accounts/:id/balance-history - Histórico de saldo
 router.get(
   "/:id/balance-history",
+  authMiddleware,
+  tenantMiddleware,
   param("id").isUUID().withMessage("ID da conta deve ser um UUID válido"),
   query("days")
     .optional()
@@ -439,8 +467,12 @@ router.get(
     .withMessage("Dias deve ser um número entre 1 e 365"),
   validateInput,
   asyncHandler(async (req, res) => {
+    if (!req.tenant) {
+      throw new ValidationError("Contexto do tenant não encontrado");
+    }
+
     const { id } = req.params;
-    const tenantId = "demo-tenant-1"; // Usando tenant demo
+    const { tenantId } = req.tenant;
     const days = parseInt(req.query.days as string) || 30;
 
     // Verificar se conta existe e pertence ao usuário

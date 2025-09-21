@@ -11,6 +11,7 @@ import categoriesRoutes from "./categories";
 import tagsRoutes from "./tags";
 import budgetRoutes from "./budget";
 import contactRoutes from "./contacts";
+import tripRoutes from "./trips";
 import testRoutes from "./test";
 import { logger } from "@/utils/logger";
 
@@ -68,6 +69,7 @@ router.use("/categories", categoriesRoutes);
 router.use("/tags", tagsRoutes);
 router.use("/budget", budgetRoutes);
 router.use("/contacts", contactRoutes);
+router.use("/trips", tripRoutes);
 
 // Rota de teste da API
 router.get("/", (req, res) => {
@@ -88,6 +90,7 @@ router.get("/", (req, res) => {
       categories: "/api/categories",
       tags: "/api/tags",
       budget: "/api/budget",
+      trips: "/api/trips",
     },
   });
 });

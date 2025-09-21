@@ -74,157 +74,157 @@ import {
 } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { RecurringPatternsSuggestions } from "@/components/ui/recurring-patterns-suggestions";
-import { useFinancialData } from "@/hooks/use-financial-data";
+// Substituindo pelo novo hook otimizado
+import { 
+  useTransactions, 
+  useTransactionStats, 
+  useRecentTransactions 
+} from "@/hooks/use-optimized-transactions";
 
 import { UnifiedTransactionList } from "@/components/unified-transaction-list";
 
 function TransactionsPageContent() {
-  const [refreshKey, setRefreshKey] = useState(0);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [insights, setInsights] = useState<any[]>([]);
   const [monthlyStats, setMonthlyStats] = useState<any>({});
   const [categoryStats, setCategoryStats] = useState<any[]>([]);
   const { renderCount } = useRenderPerformance("TransactionsPage");
 
-  // Usar o hook useFinancialData que funciona corretamente
-  const {
-    transactions,
-    loading: isLoading,
-    refreshData,
-  } = useFinancialData();
+  // Usar os novos hooks otimizados do React Query
+  const { 
+    data: transactionsData, 
+    isLoading, 
+    error,
+    refetch: refreshTransactions 
+  } = useTransactions();
+
+  const { 
+    data: statsData, 
+    isLoading: isLoadingStats 
+  } = useTransactionStats();
+
+  const { 
+    data: recentTransactions, 
+    isLoading: isLoadingRecent 
+  } = useRecentTransactions(10);
+
+  // Extrair transações dos dados
+  const transactions = transactionsData?.transactions || [];
 
   const handleUpdate = async () => {
-    setRefreshKey((prev) => prev + 1);
-    await refreshData();
+    await refreshTransactions();
   };
 
-  // Calcular estatísticas e insights
-  const calculateStats = () => {
-    if (!transactions || transactions.length === 0) return;
+  // Usar dados do React Query para estatísticas
+  const calculatedStats = useMemo(() => {
+    if (!statsData) return null;
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const lastMonth = new Date(new Date().setMonth(new Date().getMonth() - 1))
-      .toISOString()
-      .slice(0, 7);
+    return {
+      currentIncome: statsData.income,
+      currentExpenses: statsData.expenses,
+      currentBalance: statsData.balance,
+      transactionCount: statsData.transactionCount,
+      averageTransaction: statsData.averageTransaction,
+      savingsRate: statsData.income > 0 ? ((statsData.income - statsData.expenses) / statsData.income) * 100 : 0,
+    };
+  }, [statsData]);
 
-    const currentMonthTransactions = transactions.filter((t) =>
-      t.date.startsWith(currentMonth),
-    );
-    const lastMonthTransactions = transactions.filter((t) =>
-      t.date.startsWith(lastMonth),
-    );
+  // Calcular insights baseados nos dados do React Query
+  const calculateInsights = useMemo(() => {
+    if (!calculatedStats || !statsData) return [];
 
-    // Estatísticas mensais
-    const currentIncome = currentMonthTransactions
-      .filter((t) => t.type === "income")
-      .reduce((sum, t) => sum + t.amount, 0);
-    const currentExpenses = currentMonthTransactions
-      .filter((t) => t.type === "expense" || t.type === "shared")
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    const lastIncome = lastMonthTransactions
-      .filter((t) => t.type === "income")
-      .reduce((sum, t) => sum + t.amount, 0);
-    const lastExpenses = lastMonthTransactions
-      .filter((t) => t.type === "expense" || t.type === "shared")
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-    setMonthlyStats({
-      currentIncome,
-      currentExpenses,
-      currentBalance: currentIncome - currentExpenses,
-      incomeChange:
-        lastIncome > 0 ? ((currentIncome - lastIncome) / lastIncome) * 100 : 0,
-      expenseChange:
-        lastExpenses > 0
-          ? ((currentExpenses - lastExpenses) / lastExpenses) * 100
-          : 0,
-      transactionCount: currentMonthTransactions.length,
-      savingsRate:
-        currentIncome > 0
-          ? ((currentIncome - currentExpenses) / currentIncome) * 100
-          : 0,
-    });
-
-    // Estatísticas por categoria
-    const categoryData: Record<
-      string,
-      { amount: number; count: number; type: string }
-    > = {};
-    currentMonthTransactions.forEach((t) => {
-      if (!categoryData[t.category]) {
-        categoryData[t.category] = { amount: 0, count: 0, type: t.type };
-      }
-      categoryData[t.category].amount += Math.abs(t.amount);
-      categoryData[t.category].count += 1;
-    });
-
-    const categoryArray = Object.entries(categoryData)
-      .map(([category, data]) => ({ category, ...data }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
-
-    setCategoryStats(categoryArray);
-
-    // Gerar insights
     const newInsights = [];
 
-    if (currentIncome > lastIncome && lastIncome > 0 && currentIncome > lastIncome * 1.1) {
-      const incomeGrowth = (((currentIncome - lastIncome) / lastIncome) * 100);
-      if (isFinite(incomeGrowth) && incomeGrowth > 0) {
-        newInsights.push({
-          type: "positive",
-          title: "Receita em alta",
-          description: `Sua receita aumentou ${incomeGrowth.toFixed(1)}% este mês`,
-          icon: TrendingUp,
-        });
+    // Insight sobre saldo positivo
+    if (calculatedStats.currentBalance > 0) {
+      newInsights.push({
+        type: "positive",
+        title: "Saldo positivo",
+        description: `Você tem um saldo positivo de R$ ${calculatedStats.currentBalance.toFixed(2)}`,
+        icon: TrendingUp,
+      });
+    }
+
+    // Insight sobre taxa de poupança
+    if (calculatedStats.savingsRate > 20) {
+      newInsights.push({
+        type: "positive",
+        title: "Boa taxa de poupança",
+        description: `Você está poupando ${calculatedStats.savingsRate.toFixed(1)}% da sua renda`,
+        icon: Target,
+      });
+    } else if (calculatedStats.savingsRate < 10 && calculatedStats.savingsRate > 0) {
+      newInsights.push({
+        type: "warning",
+        title: "Taxa de poupança baixa",
+        description: `Considere aumentar sua taxa de poupança (atual: ${calculatedStats.savingsRate.toFixed(1)}%)`,
+        icon: Target,
+      });
+    }
+
+    // Insight sobre categorias
+    if (statsData.byCategory && Object.keys(statsData.byCategory).length > 0) {
+      const topCategory = Object.entries(statsData.byCategory)
+        .sort(([,a], [,b]) => (b as any).total - (a as any).total)[0];
+      
+      if (topCategory) {
+        const [categoryName, categoryData] = topCategory;
+        const percentage = calculatedStats.currentExpenses > 0 
+          ? ((categoryData as any).total / calculatedStats.currentExpenses) * 100 
+          : 0;
+        
+        if (percentage > 30) {
+          newInsights.push({
+            type: "info",
+            title: "Categoria principal",
+            description: `${categoryName} representa ${percentage.toFixed(1)}% dos seus gastos`,
+            icon: PieChart,
+          });
+        }
       }
     }
 
-    if (lastExpenses > 0 && currentExpenses < lastExpenses * 0.9) {
-      const expenseReduction = (((lastExpenses - currentExpenses) / lastExpenses) * 100);
-      if (isFinite(expenseReduction) && expenseReduction > 0) {
-        newInsights.push({
-          type: "positive",
-          title: "Gastos controlados",
-          description: `Você reduziu seus gastos em ${expenseReduction.toFixed(1)}%`,
-          icon: TrendingDown,
-        });
-      }
+    // Insight sobre economia
+    if (calculatedStats.savingsRate > 20) {
+      newInsights.push({
+        type: "positive",
+        title: "Excelente economia",
+        description: `Taxa de economia de ${calculatedStats.savingsRate.toFixed(1)}% está acima da média`,
+        icon: Target,
+      });
     }
 
-    if (categoryArray.length > 0 && currentExpenses > 0) {
-      const topCategory = categoryArray[0];
-      const categoryPercentage = ((topCategory.amount / currentExpenses) * 100);
-      if (isFinite(categoryPercentage) && categoryPercentage > 0) {
-        newInsights.push({
-          type: "info",
-          title: "Categoria principal",
-          description: `${topCategory.category} representa ${categoryPercentage.toFixed(1)}% dos seus gastos`,
-          icon: PieChart,
-        });
-      }
-    }
+    return newInsights;
+  }, [calculatedStats, statsData]);
 
-    if (currentIncome > 0) {
-      const savingsRate = ((currentIncome - currentExpenses) / currentIncome) * 100;
-      if (isFinite(savingsRate) && savingsRate > 20) {
-        newInsights.push({
-          type: "positive",
-          title: "Excelente economia",
-          description: `Taxa de economia de ${savingsRate.toFixed(1)}% está acima da média`,
-          icon: Target,
-        });
-      }
-    }
-
-    setInsights(newInsights);
-  };
-
+  // Atualizar insights quando calculados
   useEffect(() => {
-    if (transactions && transactions.length > 0) {
-      calculateStats();
+    setInsights(calculateInsights);
+  }, [calculateInsights]);
+
+  // Atualizar stats mensais quando dados estão disponíveis
+  useEffect(() => {
+    if (calculatedStats) {
+      setMonthlyStats(calculatedStats);
     }
-  }, [transactions]);
+  }, [calculatedStats]);
+
+  // Atualizar estatísticas de categoria
+  useEffect(() => {
+    if (statsData?.byCategory) {
+      const categoryArray = Object.entries(statsData.byCategory)
+        .map(([category, data]) => ({ 
+          category, 
+          amount: (data as any).total,
+          count: (data as any).count,
+          type: 'mixed' // Como não temos tipo específico no novo formato
+        }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5);
+      
+      setCategoryStats(categoryArray);
+    }
+  }, [statsData]);
 
 
 
@@ -383,7 +383,7 @@ function TransactionsPageContent() {
 
           {/* Lista de Transações */}
           {(
-            <UnifiedTransactionList key={refreshKey} onUpdate={handleUpdate} />
+            <UnifiedTransactionList onUpdate={handleUpdate} />
           )}
         </div>
       </OptimizedPageTransition>

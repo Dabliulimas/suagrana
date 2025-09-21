@@ -7,7 +7,8 @@ import { GlobalModalProvider } from "../contexts/ui/global-modal-context";
 import { NotificationProvider } from "../contexts/notification-context";
 import { ReactQueryProvider } from "../providers/react-query-provider";
 import { AuthProvider } from "../contexts/auth-context";
-import { DevAuthSetup } from "./dev-auth-setup";
+import { NextAuthProvider } from "./providers/session-provider";
+
 import { ErrorBoundary } from "react-error-boundary";
 import "../utils/test-notifications";
 import "../utils/clear-notifications";
@@ -38,18 +39,19 @@ function ErrorFallback({ error, resetErrorBoundary }: any) {
 export function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <ReactQueryProvider>
-        <AuthProvider>
-          <DevAuthSetup />
-          <ThemeProviderWrapper>
-            <NotificationProvider>
-              <UnifiedProvider>
-                <GlobalModalProvider>{children}</GlobalModalProvider>
-              </UnifiedProvider>
-            </NotificationProvider>
-          </ThemeProviderWrapper>
-        </AuthProvider>
-      </ReactQueryProvider>
+      <NextAuthProvider>
+        <ReactQueryProvider>
+          <AuthProvider>
+            <ThemeProviderWrapper>
+              <NotificationProvider>
+                <UnifiedProvider>
+                  <GlobalModalProvider>{children}</GlobalModalProvider>
+                </UnifiedProvider>
+              </NotificationProvider>
+            </ThemeProviderWrapper>
+          </AuthProvider>
+        </ReactQueryProvider>
+      </NextAuthProvider>
     </ErrorBoundary>
   );
 }

@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { query, validationResult } from "express-validator";
-import { PrismaClient } from "@prisma/client";
 import { ValidationError, asyncHandler } from "@/middleware/errorHandler";
 
 import {
@@ -10,17 +9,101 @@ import {
 import { reportService } from "@/services/reportService";
 import { cacheService } from "@/services/cacheService";
 import { logger, loggerUtils } from "@/utils/logger";
+import { prisma } from "@/config/database";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Rota de teste
-router.get("/test", (req, res) => {
+router.get("/test", asyncHandler(async (req, res) => {
+  // Verificar dados no banco
+  const [accountCount, transactionCount, investmentCount, goalCount] = await Promise.all([
+    prisma.account.count(),
+    prisma.transaction.count(),
+    prisma.investment.count(),
+    prisma.goal.count(),
+  ]);
+
   res.json({
     success: true,
     message: "Rota de relatórios funcionando!",
     timestamp: new Date().toISOString(),
+    database: {
+      accounts: accountCount,
+      transactions: transactionCount,
+      investments: investmentCount,
+      goals: goalCount,
+    },
   });
+}));
+
+// GET /api/reports/simple - Rota simples sem middlewares
+router.get("/simple", async (req, res) => {
+  try {
+    const accounts = await prisma.account.findMany({
+      select: { id: true, name: true, type: true }
+    });
+    
+    const transactions = await prisma.transaction.findMany({
+      select: { id: true, description: true, status: true, date: true }
+    });
+
+    res.json({
+      success: true,
+      message: "Rota simples funcionando!",
+      data: {
+        accounts: accounts.length,
+        transactions: transactions.length,
+        accountsList: accounts.slice(0, 3), // Primeiras 3 contas
+        transactionsList: transactions.slice(0, 3) // Primeiras 3 transações
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Erro na rota simples",
+      error: error.message
+    });
+  }
+});
+
+// GET /api/reports/cash-flow-simple - Versão simplificada do cash-flow
+router.get("/cash-flow-simple", async (req, res) => {
+  try {
+    // Buscar transações dos últimos 30 dias
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        date: { gte: thirtyDaysAgo },
+        status: "COMPLETED"
+      },
+      select: {
+        id: true,
+        description: true,
+        date: true,
+        status: true
+      },
+      orderBy: { date: "desc" },
+      take: 50
+    });
+
+    res.json({
+      success: true,
+      message: "Cash flow simples funcionando!",
+      data: {
+        period: "últimos 30 dias",
+        transactions: transactions.length,
+        transactionsList: transactions.slice(0, 10)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Erro na rota cash-flow simples",
+      error: error.message
+    });
+  }
 });
 
 // Validações
@@ -58,7 +141,7 @@ const validateInput = (req: any, res: any, next: any) => {
       .array()
       .map((error) => error.msg)
       .join(", ");
-    throw new ValidationError(errorMessages);
+    return next(new ValidationError(errorMessages));
   }
   next();
 };
@@ -102,253 +185,79 @@ const calculateDateRange = (
 };
 
 // GET /api/reports/dashboard - Dashboard principal
-router.get(
-  "/dashboard",
-  cacheHeadersMiddleware(300, true), // 5 minutos, privado
-  conditionalCacheMiddleware(),
-  dateRangeValidation,
-  validateInput,
-  asyncHandler(async (req, res) => {
-    const userId = "demo-user-1";
-    const { period = "month", startDate, endDate } = req.query;
-    const { start, end } = calculateDateRange(
-      period as string,
-      startDate as string,
-      endDate as string,
-    );
-
-    // Buscar dados básicos
-    const [accounts, transactions, investments, goals] = await Promise.all([
-      // Contas
-      prisma.account.findMany({
-        where: { userId, isActive: true },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          balance: true,
-          currency: true,
-        },
-      }),
-
-      // Transações do período
-      prisma.transaction.findMany({
-        where: {
-          userId,
-          date: { gte: start, lte: end },
-          status: "COMPLETED",
-        },
-        select: {
-          type: true,
-          amount: true,
-          category: true,
-          date: true,
-        },
-      }),
-
-      // Investimentos
-      prisma.investment.findMany({
-        where: { userId },
-        select: {
-          quantity: true,
-          purchasePrice: true,
-          currentPrice: true,
-          type: true,
-        },
-      }),
-
-      // Metas ativas
-      prisma.goal.findMany({
-        where: { userId, status: "ACTIVE" },
-        select: {
-          targetAmount: true,
-          currentAmount: true,
-          targetDate: true,
-        },
-      }),
-    ]);
-
-    // Calcular totais de contas
-    const accountTotals = accounts.reduce(
-      (acc, account) => {
-        const balance = Number(account.balance);
-        acc.total += balance;
-        acc.byType[account.type] = (acc.byType[account.type] || 0) + balance;
-        return acc;
+router.get("/dashboard", async (req, res) => {
+  try {
+    // Buscar contas com a nova estrutura
+    const accounts = await prisma.account.findMany({
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        subtype: true,
+        currency: true,
+        description: true,
+        isActive: true,
+        tenantId: true,
       },
-      { total: 0, byType: {} as any },
-    );
+    });
 
-    // Calcular totais de transações
-    const transactionTotals = transactions.reduce(
-      (acc, transaction) => {
-        const amount = Number(transaction.amount);
-        if (transaction.type === "INCOME") {
-          acc.income += amount;
-        } else if (transaction.type === "EXPENSE") {
-          acc.expense += amount;
-        }
-        return acc;
-      },
-      { income: 0, expense: 0 },
-    );
-
-    // Calcular totais de investimentos
-    const investmentTotals = investments.reduce(
-      (acc, investment) => {
-        const quantity = Number(investment.quantity);
-        const purchasePrice = Number(investment.purchasePrice);
-        const currentPrice = Number(
-          investment.currentPrice || investment.purchasePrice,
-        );
-        const invested = quantity * purchasePrice;
-        const current = quantity * currentPrice;
-
-        acc.totalInvested += invested;
-        acc.currentValue += current;
-        acc.gainLoss += current - invested;
-        return acc;
-      },
-      { totalInvested: 0, currentValue: 0, gainLoss: 0 },
-    );
-
-    // Calcular totais de metas
-    const goalTotals = goals.reduce(
-      (acc, goal) => {
-        const target = Number(goal.targetAmount);
-        const current = Number(goal.currentAmount);
-        acc.totalTarget += target;
-        acc.totalCurrent += current;
-        return acc;
-      },
-      { totalTarget: 0, totalCurrent: 0 },
-    );
-
-    // Agrupar transações por categoria
-    const expensesByCategory = transactions
-      .filter((t) => t.type === "EXPENSE")
-      .reduce((acc, t) => {
-        acc[t.category] = (acc[t.category] || 0) + Number(t.amount);
-        return acc;
-      }, {} as any);
-
-    // Buscar transações recentes para o dashboard (últimas 10)
-    const recentTransactions = await prisma.transaction.findMany({
-      where: {
-        userId,
-        status: "COMPLETED",
-      },
+    // Buscar transações para calcular saldos
+    const transactions = await prisma.transaction.findMany({
       select: {
         id: true,
         description: true,
-        amount: true,
-        type: true,
-        category: true,
         date: true,
+        tenantId: true,
       },
-      orderBy: { date: "desc" },
-      take: 10,
     });
 
-    // Agrupar transações por dia (últimos 30 dias)
-    const dailyTransactions = transactions.reduce((acc, t) => {
-      const dateKey = t.date.toISOString().split("T")[0];
-      if (!acc[dateKey]) {
-        acc[dateKey] = { income: 0, expense: 0 };
+    // Buscar entradas (entries) para saldos das contas usando consulta SQL direta
+    const entries = await prisma.$queryRaw`
+      SELECT id, account_id, debit, credit 
+      FROM entries
+    `;
+
+    // Calcular saldos por conta
+    const accountBalances: Record<string, number> = {};
+    entries.forEach(entry => {
+      if (!accountBalances[entry.account_id]) {
+        accountBalances[entry.account_id] = 0;
       }
-      const amount = Number(t.amount);
-      if (t.type === "INCOME") {
-        acc[dateKey].income += amount;
-      } else if (t.type === "EXPENSE") {
-        acc[dateKey].expense += amount;
-      }
-      return acc;
-    }, {} as any);
+      accountBalances[entry.account_id] += Number(entry.debit || 0) - Number(entry.credit || 0);
+    });
 
     res.json({
       success: true,
       data: {
-        period: {
-          type: period,
-          startDate: start.toISOString().split("T")[0],
-          endDate: end.toISOString().split("T")[0],
-        },
         summary: {
           accounts: {
-            total: Math.round(accountTotals.total * 100) / 100,
             count: accounts.length,
-            byType: Object.entries(accountTotals.byType).map(
-              ([type, amount]) => ({
-                type,
-                amount: Math.round((amount as number) * 100) / 100,
-              }),
-            ),
+            active: accounts.filter(acc => acc.isActive).length,
           },
           transactions: {
-            income: Math.round(transactionTotals.income * 100) / 100,
-            expense: Math.round(transactionTotals.expense * 100) / 100,
-            net:
-              Math.round(
-                (transactionTotals.income - transactionTotals.expense) * 100,
-              ) / 100,
             count: transactions.length,
           },
-          investments: {
-            totalInvested:
-              Math.round(investmentTotals.totalInvested * 100) / 100,
-            currentValue: Math.round(investmentTotals.currentValue * 100) / 100,
-            gainLoss: Math.round(investmentTotals.gainLoss * 100) / 100,
-            gainLossPercentage:
-              investmentTotals.totalInvested > 0
-                ? Math.round(
-                    (investmentTotals.gainLoss /
-                      investmentTotals.totalInvested) *
-                      10000,
-                  ) / 100
-                : 0,
-            count: investments.length,
-          },
-          goals: {
-            totalTarget: Math.round(goalTotals.totalTarget * 100) / 100,
-            totalCurrent: Math.round(goalTotals.totalCurrent * 100) / 100,
-            progress:
-              goalTotals.totalTarget > 0
-                ? Math.round(
-                    (goalTotals.totalCurrent / goalTotals.totalTarget) * 10000,
-                  ) / 100
-                : 0,
-            count: goals.length,
+          entries: {
+            count: entries.length,
           },
         },
-        charts: {
-          expensesByCategory: Object.entries(expensesByCategory)
-            .map(([category, amount]) => ({
-              category,
-              amount: Math.round((amount as number) * 100) / 100,
-            }))
-            .sort((a, b) => b.amount - a.amount)
-            .slice(0, 10),
-          dailyFlow: Object.entries(dailyTransactions)
-            .map(([date, data]: [string, any]) => ({
-              date,
-              income: Math.round(data.income * 100) / 100,
-              expense: Math.round(data.expense * 100) / 100,
-              net: Math.round((data.income - data.expense) * 100) / 100,
-            }))
-            .sort((a, b) => a.date.localeCompare(b.date)),
-        },
-        recentTransactions: recentTransactions.map((t) => ({
-          id: t.id,
-          description: t.description,
-          amount: Math.round(Number(t.amount) * 100) / 100,
-          type: t.type.toLowerCase(),
-          category: t.category,
-          date: t.date.toISOString().split("T")[0],
+        accounts: accounts.map(acc => ({
+          ...acc,
+          balance: accountBalances[acc.id] || 0,
         })),
+        message: "Dashboard com nova estrutura funcionando!",
+        timestamp: new Date().toISOString(),
       },
     });
-  }),
-);
+  } catch (error) {
+    console.error("Dashboard error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Erro interno do servidor",
+      message: error.message,
+    });
+  }
+});
 
 // GET /api/reports/cash-flow - Relatório de fluxo de caixa
 router.get(

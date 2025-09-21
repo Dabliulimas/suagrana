@@ -4,95 +4,101 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  name         String
-  avatar       String?
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  accounts     Account[]
-  budgets      Budget[]
-  categories   Category[]
-  contacts     Contact[]
-  goals        Goal[]
-  investments  Investment[]
-  tags         Tag[]
-  transactions Transaction[]
-  settings     UserSettings[]
+  id              String            @id @default(cuid())
+  email           String            @unique
+  name            String
+  password        String
+  avatar          String?
+  is_active       Boolean           @default(true)
+  last_login      DateTime?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  audit_events    audit_events[]
+  budgets         Budget[]
+  contacts        Contact[]
+  goals           Goal[]
+  investments     Investment[]
+  recurring_rules recurring_rules[]
+  transactions    Transaction[]
+  trips           Trip[]
+  user_profiles   user_profiles?
+  user_tenants    user_tenants[]
 
   @@map("users")
 }
 
 model Account {
-  id           String        @id @default(cuid())
-  userId       String        @map("user_id")
-  name         String
-  type         String
-  balance      Decimal       @default(0)
-  description  String?
-  isActive     Boolean       @default(true) @map("is_active")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  id              String            @id @default(cuid())
+  tenant_id       String
+  ledger_id       String?
+  name            String
+  type            String
+  subtype         String?
+  currency        String            @default("BRL")
+  description     String?
+  isActive        Boolean           @default(true) @map("is_active")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  ledgers         ledgers?          @relation(fields: [ledger_id], references: [id])
+  tenants         tenants           @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  entries         entries[]
+  recurring_rules recurring_rules[]
 
   @@map("accounts")
 }
 
 model Transaction {
-  id                 String        @id @default(cuid())
-  userId             String        @map("user_id")
-  accountId          String        @map("account_id")
-  categoryId         String?       @map("category_id")
-  description        String
-  amount             Decimal
-  type               String
-  category           String
-  date               DateTime
-  notes              String?
-  isShared           Boolean       @default(false) @map("is_shared")
-  sharedWith         String?       @map("shared_with")
-  installments       Int?          @default(1)
-  currentInstallment Int?          @default(1) @map("current_installment")
-  parentId           String?       @map("parent_id")
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
-  account            Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  categoryRef        Category?     @relation(fields: [categoryId], references: [id])
-  parent             Transaction?  @relation("TransactionInstallments", fields: [parentId], references: [id])
-  children           Transaction[] @relation("TransactionInstallments")
-  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tags               Tag[]         @relation("TransactionTags")
+  id                      String        @id @default(cuid())
+  tenant_id               String
+  date                    DateTime
+  description             String
+  external_id             String?
+  reference               String?
+  status                  String        @default("COMPLETED")
+  tags                    String?
+  metadata                String?
+  created_by              String
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+  original_transaction_id String?
+  entries                 entries[]
+  users                   User          @relation(fields: [created_by], references: [id])
+  transactions            Transaction?  @relation("transactionsTotransactions", fields: [original_transaction_id], references: [id])
+  other_transactions      Transaction[] @relation("transactionsTotransactions")
+  tenants                 tenants       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
 
+  @@unique([tenant_id, external_id])
   @@map("transactions")
 }
 
 model Goal {
-  id            String    @id @default(cuid())
-  userId        String    @map("user_id")
+  id            String   @id @default(cuid())
+  tenant_id     String
+  userId        String   @map("user_id")
   name          String
   description   String?
-  targetAmount  Decimal   @map("target_amount")
-  currentAmount Decimal   @default(0) @map("current_amount")
-  targetDate    DateTime? @map("target_date")
+  targetAmount  Decimal  @map("target_amount")
+  currentAmount Decimal  @default(0) @map("current_amount")
+  targetDate    DateTime @map("target_date")
   category      String
-  priority      String    @default("medium")
-  status        String    @default("active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  priority      String   @default("MEDIUM")
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  tenants       tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("goals")
 }
 
 model Investment {
   id            String     @id @default(cuid())
+  tenant_id     String
   userId        String     @map("user_id")
   name          String
   type          String
@@ -101,12 +107,15 @@ model Investment {
   purchasePrice Decimal    @map("purchase_price")
   currentPrice  Decimal?   @map("current_price")
   purchaseDate  DateTime   @map("purchase_date")
+  maturity_date DateTime?
+  status        String     @default("ACTIVE")
   broker        String?
-  fees          Decimal    @default(0)
-  notes         String?
+  fees          Decimal?   @default(0)
+  metadata      String?
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
   dividends     Dividend[]
+  tenants       tenants    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("investments")
@@ -114,18 +123,21 @@ model Investment {
 
 model Dividend {
   id           String     @id @default(cuid())
+  tenant_id    String
   investmentId String     @map("investment_id")
   amount       Decimal
   paymentDate  DateTime   @map("payment_date")
-  type         String     @default("dividend")
+  type         String
   createdAt    DateTime   @default(now()) @map("created_at")
   investment   Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+  tenants      tenants    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
 
   @@map("dividends")
 }
 
 model Contact {
   id        String   @id @default(cuid())
+  tenant_id String
   userId    String   @map("user_id")
   name      String
   email     String?
@@ -134,75 +146,200 @@ model Contact {
   notes     String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  tenants   tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("contacts")
 }
 
-model UserSettings {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String
-  data      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Trip {
+  id          String   @id @default(cuid())
+  tenant_id   String
+  userId      String   @map("user_id")
+  name        String
+  destination String
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  budget      Decimal
+  spent       Decimal  @default(0)
+  currency    String   @default("BRL")
+  description String?
+  status      String   @default("planning") // planning, active, completed, cancelled
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenants     tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, type])
-  @@map("user_settings")
+  @@map("trips")
 }
 
 model Category {
-  id           String        @id @default(cuid())
-  userId       String        @map("user_id")
-  name         String
-  type         String
-  color        String?
-  icon         String?
-  description  String?
-  isActive     Boolean       @default(true) @map("is_active")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  budgets      Budget[]
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  id               String            @id @default(cuid())
+  tenant_id        String
+  name             String
+  type             String
+  parent_id        String?
+  isActive         Boolean           @default(true) @map("is_active")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  budgets          Budget[]
+  categories       Category?         @relation("categoriesTocategories", fields: [parent_id], references: [id])
+  other_categories Category[]        @relation("categoriesTocategories")
+  tenants          tenants           @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  entries          entries[]
+  recurring_rules  recurring_rules[]
 
-  @@unique([userId, name, type])
   @@map("categories")
-}
-
-model Tag {
-  id           String        @id @default(cuid())
-  userId       String        @map("user_id")
-  name         String
-  color        String?
-  description  String?
-  isActive     Boolean       @default(true) @map("is_active")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[] @relation("TransactionTags")
-
-  @@unique([userId, name])
-  @@map("tags")
 }
 
 model Budget {
   id             String    @id @default(cuid())
+  tenant_id      String
   userId         String    @map("user_id")
-  categoryId     String    @map("category_id")
+  categoryId     String?   @map("category_id")
+  name           String
   amount         Decimal
-  period         String    @default("monthly")
-  startDate      DateTime? @map("start_date")
-  endDate        DateTime? @map("end_date")
-  alertThreshold Int       @default(80) @map("alert_threshold")
-  description    String?
+  spent          Decimal   @default(0)
+  period         String
+  startDate      DateTime  @map("start_date")
+  endDate        DateTime  @map("end_date")
   isActive       Boolean   @default(true) @map("is_active")
+  alertThreshold Decimal?  @map("alert_threshold")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
-  category       Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category       Category? @relation(fields: [categoryId], references: [id])
+  tenants        tenants   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, categoryId, period])
   @@map("budgets")
+}
+
+model audit_events {
+  id          String   @id
+  tenant_id   String
+  user_id     String?
+  entity_type String
+  entity_id   String
+  action      String
+  old_values  String?
+  new_values  String?
+  ip_address  String?
+  user_agent  String?
+  session_id  String?
+  severity    String   @default("info")
+  tags        String?  @default("")
+  metadata    String?  @default("{}")
+  created_at  DateTime @default(now())
+  tenants     tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  users       User?    @relation(fields: [user_id], references: [id])
+
+  @@index([tenant_id, action, created_at])
+  @@index([tenant_id, entity_type, entity_id])
+  @@index([tenant_id, user_id, created_at])
+}
+
+model entries {
+  id             String      @id
+  transaction_id String
+  account_id     String
+  category_id    String?
+  debit          Decimal     @default(0)
+  credit         Decimal     @default(0)
+  description    String?
+  created_at     DateTime    @default(now())
+  accounts       Account     @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  categories     Category?   @relation(fields: [category_id], references: [id])
+  transactions   Transaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+}
+
+model ledgers {
+  id          String    @id
+  tenant_id   String
+  name        String
+  description String?
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime
+  accounts    Account[]
+  tenants     tenants   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+}
+
+model recurring_rules {
+  id             String    @id
+  tenant_id      String
+  user_id        String
+  name           String
+  description    String?
+  amount         Decimal
+  frequency      String
+  interval       Int       @default(1)
+  day_of_month   Int?
+  day_of_week    Int?
+  start_date     DateTime
+  end_date       DateTime?
+  last_executed  DateTime?
+  next_execution DateTime
+  is_active      Boolean   @default(true)
+  auto_execute   Boolean   @default(false)
+  account_id     String
+  category_id    String
+  type           String
+  tags           String?   @default("")
+  metadata       String?   @default("{}")
+  created_at     DateTime  @default(now())
+  updated_at     DateTime
+  accounts       Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  categories     Category  @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  tenants        tenants   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  users          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model tenants {
+  id              String            @id
+  name            String
+  slug            String            @unique
+  settings        String?
+  is_active       Boolean           @default(true)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime
+  accounts        Account[]
+  audit_events    audit_events[]
+  budgets         Budget[]
+  categories      Category[]
+  contacts        Contact[]
+  dividends       Dividend[]
+  goals           Goal[]
+  investments     Investment[]
+  ledgers         ledgers[]
+  recurring_rules recurring_rules[]
+  transactions    Transaction[]
+  trips           Trip[]
+  user_tenants    user_tenants[]
+}
+
+model user_profiles {
+  id                String   @id
+  user_id           String   @unique
+  monthly_income    Decimal?
+  emergency_reserve Decimal?
+  risk_profile      String?
+  financial_goals   String?
+  preferences       String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime
+  users             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model user_tenants {
+  id         String   @id
+  user_id    String
+  tenant_id  String
+  role       String   @default("USER")
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime
+  tenants    tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  users      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, tenant_id])
 }

@@ -692,19 +692,28 @@ export class DataService {
    */
   async getTrips(): Promise<any[]> {
     try {
-      // Data is now retrieved from database via Prisma
-      // localStorage functionality has been removed
+      const response = await fetch('/api/trips', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar viagens: ${response.statusText}`);
+      }
+
+      const result = await response.json();
       
-      // Se houver banco, usar Prisma (implementar quando tiver schema)
-      // const dbTrips = await db.trip.findMany({
-      //   where: { userId: this.getCurrentUserId() },
-      //   orderBy: { startDate: 'desc' }
-      // });
-      
-      return [];
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao buscar viagens');
+      }
+
+      return result.data?.trips || [];
     } catch (error) {
       logComponents.error("Erro ao buscar viagens:", error);
-      return [];
+      // Fallback para localStorage se a API falhar
+      return this.localDataService.getTrips();
     }
   }
 
@@ -713,8 +722,28 @@ export class DataService {
    */
   async saveTrip(data: any): Promise<any> {
     try {
-      // Data is now saved to database via Prisma
-      // localStorage functionality has been removed
+      const response = await fetch('/api/trips', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao salvar viagem: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao salvar viagem');
+      }
+
+      return result.data;
+    } catch (error) {
+      logComponents.error("Erro ao salvar viagem:", error);
+      // Fallback para localStorage se a API falhar
       const trip = {
         ...data,
         id: `trip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -722,14 +751,8 @@ export class DataService {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      
-      // Se houver banco, usar Prisma (implementar quando tiver schema)
-      // const dbTrip = await db.trip.create({ data: { ...data, userId: this.getCurrentUserId() } });
-      
+      this.localDataService.saveTrips([...this.localDataService.getTrips(), trip]);
       return trip;
-    } catch (error) {
-      logComponents.error("Erro ao salvar viagem:", error);
-      throw error;
     }
   }
 
@@ -738,20 +761,40 @@ export class DataService {
    */
   async updateTrip(id: string, updates: any): Promise<any> {
     try {
-      // Data is now updated in database via Prisma
-      // localStorage functionality has been removed
-      const updatedTrip = {
-        id,
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
+      const response = await fetch(`/api/trips?id=${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao atualizar viagem: ${response.statusText}`);
+      }
+
+      const result = await response.json();
       
-      // Se houver banco, usar Prisma (implementar quando tiver schema)
-      // const dbTrip = await db.trip.update({ where: { id }, data: updates });
-      
-      return updatedTrip;
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao atualizar viagem');
+      }
+
+      return result.data;
     } catch (error) {
       logComponents.error("Erro ao atualizar viagem:", error);
+      // Fallback para localStorage se a API falhar
+      const trips = this.localDataService.getTrips();
+      const tripIndex = trips.findIndex(t => t.id === id);
+      if (tripIndex !== -1) {
+        const updatedTrip = {
+          ...trips[tripIndex],
+          ...updates,
+          updatedAt: new Date().toISOString()
+        };
+        trips[tripIndex] = updatedTrip;
+        this.localDataService.saveTrips(trips);
+        return updatedTrip;
+      }
       throw error;
     }
   }
@@ -761,16 +804,36 @@ export class DataService {
    */
   async deleteTrip(id: string): Promise<boolean> {
     try {
-      // Data is now deleted from database via Prisma
-      // localStorage functionality has been removed
+      const response = await fetch(`/api/trips?id=${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao deletar viagem: ${response.statusText}`);
+      }
+
+      const result = await response.json();
       
-      // Se houver banco, usar Prisma
-      // await db.trip.delete({ where: { id } });
-      
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao deletar viagem');
+      }
+
       return true;
     } catch (error) {
       logComponents.error("Erro ao deletar viagem:", error);
-      return false;
+      // Fallback para localStorage se a API falhar
+      try {
+        const trips = this.localDataService.getTrips();
+        const filteredTrips = trips.filter(t => t.id !== id);
+        this.localDataService.saveTrips(filteredTrips);
+        return true;
+      } catch (fallbackError) {
+        logComponents.error("Erro no fallback ao deletar viagem:", fallbackError);
+        return false;
+      }
     }
   }
 

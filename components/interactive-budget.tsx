@@ -35,7 +35,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useFinancialData } from "../hooks/use-financial-data";
+// Substituindo pelos novos hooks otimizados
+import { useTransactions } from "../hooks/use-optimized-transactions";
 
 interface BudgetCategory {
   id: string;
@@ -59,8 +60,12 @@ interface BudgetLimit {
 
 export function InteractiveBudget() {
   const router = useRouter();
-  const { transactions, budgetData, loading, error, refreshData } =
-    useFinancialData();
+  
+  // Usar os novos hooks otimizados
+  const { data: transactionsData } = useTransactions();
+  const transactions = transactionsData?.transactions || [];
+  
+  // TODO: Implementar hooks para budgetData, loading, error, refreshData
 
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>(
     [],
