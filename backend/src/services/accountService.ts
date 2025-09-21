@@ -150,12 +150,12 @@ class AccountService {
       const summary = this.calculateAccountSummary(allAccounts);
 
       // Formatar contas
-      const formattedAccounts: AccountWithTransactions[] = accounts.map(
-        (account) => ({
+      const formattedAccounts: AccountWithTransactions[] = await Promise.all(
+        accounts.map(async (account) => ({
           id: account.id,
           name: account.name,
           type: account.type,
-          balance: Number(account.balance),
+          balance: await this.getCurrentBalance(account.id),
           currency: account.currency,
           description: account.description || undefined,
           isActive: account.isActive,
@@ -169,7 +169,7 @@ class AccountService {
             category: t.category,
             date: t.date,
           })),
-        }),
+        })),
       );
 
       return {
@@ -227,7 +227,7 @@ class AccountService {
         id: account.id,
         name: account.name,
         type: account.type,
-        balance: Number(account.balance),
+        balance: await this.getCurrentBalance(account.id),
         currency: account.currency,
         description: account.description || undefined,
         isActive: account.isActive,
@@ -294,14 +294,14 @@ class AccountService {
         accountId: account.id,
         accountName: account.name,
         accountType: account.type,
-        initialBalance: Number(account.balance),
+        initialBalance: initialBalance || 0,
       });
 
       return {
         id: account.id,
         name: account.name,
         type: account.type,
-        balance: Number(account.balance),
+        balance: initialBalance || 0,
         currency: account.currency,
         description: account.description || undefined,
         isActive: account.isActive,
@@ -355,15 +355,7 @@ class AccountService {
         updateData.name = trimmedName;
       }
 
-      if (balance !== undefined) {
-        // Validar saldo
-        if (balance < 0 && existingAccount.type !== "CREDIT_CARD") {
-          throw new ValidationError(
-            "Saldo não pode ser negativo para este tipo de conta",
-          );
-        }
-        updateData.balance = balance;
-      }
+      // Nota: O saldo é calculado automaticamente baseado nas transações
 
       if (description !== undefined) {
         updateData.description = description.trim() || null;
@@ -392,19 +384,20 @@ class AccountService {
         },
       });
 
+      const currentBalance = await this.getCurrentBalance(accountId);
+
       loggerUtils.logFinancial("Account updated", {
         userId,
         accountId,
         updatedFields: Object.keys(updateData),
-        previousBalance: Number(existingAccount.balance),
-        newBalance: Number(updatedAccount.balance),
+        currentBalance,
       });
 
       return {
         id: updatedAccount.id,
         name: updatedAccount.name,
         type: updatedAccount.type,
-        balance: Number(updatedAccount.balance),
+        balance: currentBalance,
         currency: updatedAccount.currency,
         description: updatedAccount.description || undefined,
         isActive: updatedAccount.isActive,
@@ -535,7 +528,7 @@ class AccountService {
 
       // Calcular saldo diário
       const history: BalanceHistory[] = [];
-      let currentBalance = Number(account.balance);
+      let currentBalance = await this.getCurrentBalance(accountId);
 
       // Calcular saldo inicial (subtraindo transações futuras)
       const futureTransactions = transactions.filter((t) => t.date > endDate);
@@ -619,64 +612,49 @@ class AccountService {
   }
 
   /**
-   * Atualiza o saldo de uma conta
+   * Calcula o saldo atual de uma conta baseado nas transações
    */
-  async updateBalance(
-    accountId: string,
-    amount: number,
-    operation: "add" | "subtract" | "set",
-  ): Promise<number> {
+  async getCurrentBalance(accountId: string): Promise<number> {
     try {
-      const account = await prisma.account.findUnique({
-        where: { id: accountId },
-        select: { balance: true },
-      });
-
-      if (!account) {
-        throw new NotFoundError("Conta não encontrada");
-      }
-
-      let newBalance: number;
-      const currentBalance = Number(account.balance);
-
-      switch (operation) {
-        case "add":
-          newBalance = currentBalance + amount;
-          break;
-        case "subtract":
-          newBalance = currentBalance - amount;
-          break;
-        case "set":
-          newBalance = amount;
-          break;
-        default:
-          throw new ValidationError("Operação inválida");
-      }
-
-      await prisma.account.update({
-        where: { id: accountId },
-        data: {
-          balance: newBalance,
-          updatedAt: new Date(),
+      // Buscar todas as transações da conta
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          OR: [
+            { accountId: accountId },
+            { toAccountId: accountId }
+          ]
         },
+        select: {
+          amount: true,
+          type: true,
+          accountId: true,
+          toAccountId: true
+        }
       });
 
-      loggerUtils.logFinancial("Account balance updated", {
-        accountId,
-        operation,
-        amount,
-        previousBalance: currentBalance,
-        newBalance,
-      });
+      let balance = 0;
 
-      return Math.round(newBalance * 100) / 100;
+      for (const transaction of transactions) {
+        const amount = Number(transaction.amount);
+        
+        if (transaction.accountId === accountId) {
+          // Transação de saída da conta
+          if (transaction.type === "EXPENSE") {
+            balance -= amount;
+          } else if (transaction.type === "INCOME") {
+            balance += amount;
+          }
+        }
+        
+        if (transaction.toAccountId === accountId) {
+          // Transação de entrada na conta (transferência)
+          balance += amount;
+        }
+      }
+
+      return balance;
     } catch (error) {
-      logger.error("Update balance failed", {
-        accountId,
-        amount,
-        operation,
-        error,
-      });
+      logger.error("Get current balance failed", { accountId, error });
       throw error;
     }
   }
@@ -687,12 +665,12 @@ class AccountService {
   private calculateAccountSummary(
     accounts: Array<{
       type: AccountType;
-      balance: any;
+      balance: number;
       isActive: boolean;
     }>,
   ): AccountSummary {
     const totalBalance = accounts.reduce(
-      (sum, acc) => sum + Number(acc.balance),
+      (sum, acc) => sum + acc.balance,
       0,
     );
     const activeAccounts = accounts.filter((acc) => acc.isActive).length;
@@ -702,7 +680,7 @@ class AccountService {
     const byType = accounts.reduce(
       (acc, account) => {
         const existing = acc.find((item) => item.type === account.type);
-        const balance = Number(account.balance);
+        const balance = account.balance;
 
         if (existing) {
           existing.count += 1;

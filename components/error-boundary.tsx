@@ -47,7 +47,7 @@ function ModernErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) 
   };
 
   const handleReload = () => {
-    window.location.reload();
+    resetErrorBoundary();
   };
 
   const handleReportError = async () => {
@@ -201,7 +201,7 @@ function DefaultErrorFallback({ error, resetError }: ErrorFallbackProps) {
   };
 
   const handleReload = () => {
-    window.location.reload();
+    resetErrorBoundary();
   };
 
   const handleReportError = () => {
@@ -444,8 +444,8 @@ export function FeatureErrorBoundary({
             <RefreshCw className="w-4 h-4 mr-2" />
             Tentar Novamente
           </Button>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            Recarregar Página
+          <Button variant="outline" size="sm" onClick={resetErrorBoundary}>
+            Resetar Componente
           </Button>
         </div>
       </CardContent>

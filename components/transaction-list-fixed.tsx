@@ -239,7 +239,7 @@ const TransactionListFixed: React.FC<TransactionListFixedProps> = ({
           <p className="text-lg font-medium">Erro ao carregar transações</p>
           <p className="text-sm text-gray-500">{error}</p>
         </div>
-        <Button onClick={() => window.location.reload()} variant="outline">
+        <Button onClick={() => refetch()} variant="outline">
           Tentar novamente
         </Button>
       </div>

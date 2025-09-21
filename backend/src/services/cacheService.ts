@@ -75,7 +75,7 @@ class CacheService {
    */
   private updateStats(operation: "hit" | "miss" | "set" | "delete"): void {
     this.stats[
-      operation === "hit" ? "hits" : operation === "miss" ? "misses" : operation
+      operation === "hit" ? "hits" : operation === "miss" ? "misses" : operation === "delete" ? "deletes" : "sets"
     ]++;
 
     const total = this.stats.hits + this.stats.misses;
@@ -93,7 +93,7 @@ class CacheService {
       await redisClient.ping();
       return true;
     } catch (error) {
-      logger.warn("Redis not available", { error: error.message });
+      logger.warn("Redis not available", { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -358,21 +358,21 @@ class CacheService {
 
       // Agrupa chaves por prefixo
       const prefixStats: Record<string, number> = {};
-      keys.forEach((key) => {
+      keys.forEach((key: string) => {
         const prefix = key.split(":")[0];
         prefixStats[prefix] = (prefixStats[prefix] || 0) + 1;
       });
 
       // Obtém TTL de algumas chaves para análise
       const sampleKeys = keys.slice(0, 10);
-      sampleKeys.forEach((key) => {
+      sampleKeys.forEach((key: string) => {
         pipeline.ttl(key);
       });
 
       const ttlResults = await pipeline.exec();
       const avgTtl =
         ttlResults && ttlResults.length > 0
-          ? ttlResults.reduce((sum, result) => {
+          ? ttlResults.reduce((sum: number, result: any) => {
               const ttl = result?.[1] as number;
               return sum + (ttl > 0 ? ttl : 0);
             }, 0) / ttlResults.length

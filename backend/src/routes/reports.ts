@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { query, validationResult } from "express-validator";
 import { ValidationError, asyncHandler } from "@/middleware/errorHandler";
 
@@ -14,7 +14,7 @@ import { prisma } from "@/config/database";
 const router = Router();
 
 // Rota de teste
-router.get("/test", asyncHandler(async (req, res) => {
+router.get("/test", asyncHandler(async (req: Request, res: Response) => {
   // Verificar dados no banco
   const [accountCount, transactionCount, investmentCount, goalCount] = await Promise.all([
     prisma.account.count(),
@@ -134,7 +134,7 @@ const accountFilterValidation = [
 ];
 
 // Função para validar entrada
-const validateInput = (req: any, res: any, next: any) => {
+const validateInput = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorMessages = errors
@@ -262,12 +262,10 @@ router.get("/dashboard", async (req, res) => {
 // GET /api/reports/cash-flow - Relatório de fluxo de caixa
 router.get(
   "/cash-flow",
-  cacheHeadersMiddleware(600, true), // 10 minutos, privado
-  conditionalCacheMiddleware(),
   dateRangeValidation,
   accountFilterValidation,
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = "demo-user-1";
     const {
       period = "month",
@@ -438,7 +436,7 @@ router.get(
     .isLength({ min: 1, max: 50 })
     .withMessage("Categoria deve ter entre 1 e 50 caracteres"),
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = "demo-user-1";
     const {
       period = "month",
@@ -581,7 +579,7 @@ router.get(
     .isIn(["STOCK", "BOND", "FUND", "ETF", "CRYPTO", "REAL_ESTATE", "OTHER"])
     .withMessage("Tipo de investimento inválido"),
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = "demo-user-1";
     const { type } = req.query;
 
@@ -760,7 +758,7 @@ router.get(
     .isLength({ min: 1, max: 50 })
     .withMessage("Categoria deve ter entre 1 e 50 caracteres"),
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = "demo-user-1";
     const { status, category } = req.query;
 
@@ -926,7 +924,7 @@ router.get(
 // POST /api/reports/cache/invalidate - Invalidar cache de relatórios
 router.post(
   "/cache/invalidate",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const userId = "demo-user-1";
     const { type } = req.body;
 
@@ -962,7 +960,7 @@ router.post(
 // GET /api/reports/cache/stats - Estatísticas do cache
 router.get(
   "/cache/stats",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     try {
       const stats = reportService.getCacheStats();
       const redisInfo = await cacheService.getRedisInfo();
@@ -984,7 +982,7 @@ router.get(
 // DELETE /api/reports/cache - Limpar todo o cache de relatórios
 router.delete(
   "/cache",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     try {
       await reportService.invalidateAllReports();
       logger.info("All reports cache cleared");

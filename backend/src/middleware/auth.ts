@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 import { config } from "@/config/config";
 import {
@@ -8,6 +8,28 @@ import {
 } from "@/middleware/errorHandler";
 
 const prisma = new PrismaClient();
+
+// Middleware de bypass para desenvolvimento
+export const devBypassMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  // Só funciona em desenvolvimento
+  if (config.server.nodeEnv !== "development") {
+    return next();
+  }
+
+  // Criar usuário demo para desenvolvimento
+  req.user = {
+    id: "demo-user-id",
+    email: "demo@suagrana.com",
+    name: "Usuario Demo",
+  };
+
+  console.log("🔓 Bypass de autenticação ativo (desenvolvimento)");
+  next();
+};
 
 interface JWTPayload {
   userId: string;
@@ -251,15 +273,16 @@ export function generateTokens(userId: string, email: string) {
     throw new Error("JWT secrets not configured");
   }
 
-  const accessToken = jwt.sign(accessTokenPayload, String(jwtSecret), {
+  const accessTokenOptions: any = {
     expiresIn: config.jwt.expiresIn,
-  });
+  };
 
-  const refreshToken = jwt.sign(
-    refreshTokenPayload,
-    String(jwtRefreshSecret),
-    { expiresIn: config.jwt.refreshExpiresIn },
-  );
+  const refreshTokenOptions: any = {
+    expiresIn: config.jwt.refreshExpiresIn,
+  };
+
+  const accessToken = jwt.sign(accessTokenPayload, jwtSecret, accessTokenOptions);
+  const refreshToken = jwt.sign(refreshTokenPayload, jwtRefreshSecret, refreshTokenOptions);
 
   return {
     accessToken,

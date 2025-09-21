@@ -822,12 +822,7 @@ const FinancialPerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
         </TabsContent>
       </Tabs>
 
-      {/* Refresh Button */}
-      <div className="flex justify-center">
-        <Button onClick={loadPerformanceData} disabled={loading}>
-          {loading ? "Carregando..." : "Atualizar Análise"}
-        </Button>
-      </div>
+      {/* Dados atualizados automaticamente */}
     </div>
   );
 };

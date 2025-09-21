@@ -91,14 +91,9 @@ export function BackupManager() {
       localDataService.importData(backupData);
 
       toast({
-        title: "Backup restaurado com sucesso",
-        description: "Seus dados foram importados. A página será recarregada.",
+        title: "Backup restaurado com sucesso!",
+        description: "Seus dados foram importados.",
       });
-
-      // Recarregar página após 2 segundos
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
     } catch (error) {
       toast({
         title: "Erro ao restaurar backup",

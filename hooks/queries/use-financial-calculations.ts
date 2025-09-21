@@ -195,7 +195,7 @@ export function useDashboardMetrics() {
   const query = useQuery({
     queryKey: queryKeys.reports.dashboard(),
     queryFn: async () => {
-      const result = await apiClient.get("/api/reports/dashboard");
+      const result = await apiClient.get("/api/dashboard/summary");
       return result.data;
     },
     staleTime: 60 * 1000,

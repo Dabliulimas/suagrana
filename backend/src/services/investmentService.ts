@@ -678,7 +678,7 @@ class InvestmentService {
       byMonth: Array<{
         month: string;
         count: number;
-        totalAmount: number;
+        amount: number;
       }>;
       byInvestment: Array<{
         symbol: string;
@@ -1029,7 +1029,7 @@ class InvestmentService {
     byMonth: Array<{
       month: string;
       count: number;
-      totalAmount: number;
+      amount: number;
     }>;
     byInvestment: Array<{
       symbol: string;
@@ -1055,9 +1055,9 @@ class InvestmentService {
 
       if (existing) {
         existing.count += 1;
-        existing.totalAmount += amount;
+        existing.amount += amount;
       } else {
-        acc.push({ month: monthKey, count: 1, totalAmount: amount });
+        acc.push({ month: monthKey, count: 1, amount: amount });
       }
 
       return acc;

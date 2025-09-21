@@ -91,12 +91,7 @@ export function PWAManager({ onInstallPrompt }: PWAManagerProps) {
     // Service Worker update detection
     const handleServiceWorkerUpdate = () => {
       setUpdateAvailable(true);
-      toast.info("Nova versão disponível! Clique para atualizar.", {
-        action: {
-          label: "Atualizar",
-          onClick: () => window.location.reload(),
-        },
-      });
+      toast.info("Nova versão disponível! Recarregue a página para atualizar.");
     };
 
     checkInstalled();
@@ -323,9 +318,9 @@ export function PWAManager({ onInstallPrompt }: PWAManagerProps) {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => window.location.reload()}
+                onClick={() => setUpdateAvailable(false)}
               >
-                Atualizar
+                Dispensar
               </Button>
             </div>
           </div>

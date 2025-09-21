@@ -62,7 +62,7 @@ const initializeRedis = async () => {
   } catch (error) {
     console.warn(
       "⚠️ Redis não disponível, continuando sem cache:",
-      error.message,
+      error instanceof Error ? error.message : String(error),
     );
     return false;
   }

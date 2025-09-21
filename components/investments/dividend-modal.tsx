@@ -142,11 +142,6 @@ export function DividendModal({ open, onOpenChange }: DividendModalProps) {
 
       onOpenChange(false);
       
-      // Recarregar a página para atualizar os dados
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-      
     } catch (error) {
       logComponents.error("Erro ao adicionar dividendo:", error);
       toast.error("Erro ao adicionar dividendo. Tente novamente.");

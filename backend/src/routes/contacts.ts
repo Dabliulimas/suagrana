@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
 import { asyncHandler } from "@/utils/asyncHandler";
 import { logger } from "@/utils/logger";
@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 // GET /api/contacts - Listar todos os contatos
 router.get(
   "/",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
       
@@ -51,7 +51,7 @@ router.get(
 // POST /api/contacts - Criar novo contato
 router.post(
   "/",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
       const { name, email, phone } = req.body;
@@ -120,7 +120,7 @@ router.post(
 // PUT /api/contacts/:id - Atualizar contato
 router.put(
   "/:id",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
       const { id } = req.params;
@@ -201,7 +201,7 @@ router.put(
 // DELETE /api/contacts/:id - Deletar contato
 router.delete(
   "/:id",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
       const { id } = req.params;

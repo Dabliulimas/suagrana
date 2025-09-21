@@ -1,119 +1,87 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-
-const ModernAppLayout = dynamic(
-  () => import("@/components/modern-app-layout").then(mod => ({ default: mod.ModernAppLayout })),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-screen w-full bg-background">
-        <div className="fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border">
-          <div className="flex items-center justify-between px-4 py-4 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
-              <div>
-                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse mb-1" />
-                <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
-              </div>
-            </div>
-          </div>
-          <nav className="flex-1 px-4 py-4 space-y-2">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2">
-                <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
-                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-              </div>
-            ))}
-          </nav>
-        </div>
-        <div className="flex-1 flex flex-col min-w-0 w-full ml-64">
-          <div className="h-16 bg-card border-b border-border" />
-          <main className="flex-1 w-full overflow-auto p-6">
-            <div className="space-y-4">
-              <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
-              <div className="h-4 w-96 bg-gray-200 rounded animate-pulse" />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
-                ))}
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    )
-  }
-);
-
-import {
-  OptimizedPageTransition,
-  useRenderPerformance,
-} from "@/components/optimized-page-transition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NewTransactionButton } from "@/components/new-transaction-button";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
+  Lightbulb,
   TrendingUp,
   TrendingDown,
-  DollarSign,
+  BarChart3,
+  Eye,
+  AlertTriangle,
+  Target,
   Calendar,
+  DollarSign,
   ArrowUpRight,
   ArrowDownRight,
   Users,
-  Target,
-  BarChart3,
   PieChart,
-  Lightbulb,
-  Eye,
   Filter,
 } from "lucide-react";
-import { storage } from "@/lib/storage";
-import { RecurringPatternsSuggestions } from "@/components/ui/recurring-patterns-suggestions";
-// Substituindo pelo novo hook otimizado
-import { 
-  useTransactions, 
-  useTransactionStats, 
-  useRecentTransactions 
+
+// Hooks otimizados do React Query
+import {
+  useTransactions,
+  useTransactionStats,
+  useRecentTransactions,
 } from "@/hooks/use-optimized-transactions";
 
-import { UnifiedTransactionList } from "@/components/unified-transaction-list";
+
+
+// Dynamic imports para componentes
+const ModernAppLayout = dynamic(
+  () => import("@/components/modern-app-layout").then(mod => ({ default: mod.ModernAppLayout })),
+  { ssr: false }
+);
+
+const OptimizedPageTransition = dynamic(
+  () => import("@/components/optimized-page-transition").then(mod => ({ default: mod.OptimizedPageTransition })),
+  { ssr: false }
+);
+
+const UnifiedTransactionList = dynamic(
+  () => import("@/components/unified-transaction-list").then(mod => ({ default: mod.UnifiedTransactionList })),
+  { ssr: false }
+);
+
+const RecurringPatternsSuggestions = dynamic(
+  () => import("@/components/ui/recurring-patterns-suggestions").then(mod => ({ default: mod.RecurringPatternsSuggestions })),
+  { ssr: false }
+);
+
+// Hook para performance
+import { useRenderPerformance } from "@/components/optimized-page-transition";
 
 function TransactionsPageContent() {
+  // Performance monitoring
+  useRenderPerformance("TransactionsPage");
+
+  // Estados locais para UI
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [insights, setInsights] = useState<any[]>([]);
-  const [monthlyStats, setMonthlyStats] = useState<any>({});
+  const [monthlyStats, setMonthlyStats] = useState({
+    currentIncome: 0,
+    currentExpenses: 0,
+    previousIncome: 0,
+    previousExpenses: 0,
+  });
   const [categoryStats, setCategoryStats] = useState<any[]>([]);
-  const { renderCount } = useRenderPerformance("TransactionsPage");
 
-  // Usar os novos hooks otimizados do React Query
-  const { 
-    data: transactionsData, 
-    isLoading, 
-    error,
-    refetch: refreshTransactions 
-  } = useTransactions();
-
-  const { 
-    data: statsData, 
-    isLoading: isLoadingStats 
-  } = useTransactionStats();
-
-  const { 
-    data: recentTransactions, 
-    isLoading: isLoadingRecent 
-  } = useRecentTransactions(10);
-
-  // Extrair transações dos dados
+  // Hooks otimizados do React Query - busca dados da API do Neon
+  const { data: transactionsData, isLoading: transactionsLoading, refetch: refreshTransactions } = useTransactions();
   const transactions = transactionsData?.transactions || [];
+  
+  const { data: statsData, isLoading: statsLoading } = useTransactionStats();
+  const { data: recentData, isLoading: recentLoading } = useRecentTransactions(10);
 
-  const handleUpdate = async () => {
+  // Função para atualizar dados após operações CRUD - força revalidação da API
+  const handleUpdate = useCallback(async () => {
     await refreshTransactions();
-  };
+  }, [refreshTransactions]);
 
   // Usar dados do React Query para estatísticas
   const calculatedStats = useMemo(() => {

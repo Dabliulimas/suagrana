@@ -65,7 +65,7 @@ export function InteractiveBudget() {
   const { data: transactionsData } = useTransactions();
   const transactions = transactionsData?.transactions || [];
   
-  // TODO: Implementar hooks para budgetData, loading, error, refreshData
+  // TODO: Implementar hooks para budgetData, loading
 
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>(
     [],
@@ -287,9 +287,6 @@ export function InteractiveBudget() {
     setNewCategory({ name: "", budget: 0, color: "#3B82F6" });
     setIsAddingCategory(false);
     toast.success("Categoria adicionada com sucesso!");
-
-    // Refresh data from hook
-    refreshData();
   };
 
   const handleEditCategory = (categoryId: string) => {
@@ -359,9 +356,6 @@ export function InteractiveBudget() {
     setEditingCategory(null);
     setEditValues({});
     toast.success("Categoria atualizada com sucesso!");
-
-    // Refresh data from hook
-    refreshData();
   };
 
   const handleDeleteCategory = (categoryId: string) => {
@@ -394,9 +388,6 @@ export function InteractiveBudget() {
     localStorage.setItem(budgetPageKey, JSON.stringify(budgetPageData));
 
     toast.success("Categoria removida com sucesso!");
-
-    // Refresh data from hook
-    refreshData();
   };
 
   const totalBudget = budgetCategories.reduce(
@@ -440,22 +431,7 @@ export function InteractiveBudget() {
     );
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-red-600">
-            <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
-            <p className="text-lg font-semibold mb-2">
-              Erro ao carregar orçamento
-            </p>
-            <p className="text-sm mb-4">{error}</p>
-            <Button onClick={refreshData}>Tentar Novamente</Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Dados carregados automaticamente via React Query
 
   return (
     <div className="space-y-6">

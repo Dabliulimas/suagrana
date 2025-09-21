@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { logComponents } from "../../../lib/logger";
-import { getDataLayer } from "../../../lib/data-layer/data-layer";
-import type { Account } from "../../../lib/data-layer/types";
+import { logComponents } from "../../lib/logger";
+import { getDataLayer } from "../../lib/data-layer/data-layer";
+import type { Account } from "../../lib/data-layer/types";
 import type {
   UseAccountsReturn,
   HookOptions,
   AccountFilters,
   AccountStats,
   HookErrorType,
-} from "../hooks/types/financial-hooks";
+} from "../types/financial-hooks";
 import { toast } from "sonner";
 
 /**

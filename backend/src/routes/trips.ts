@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { body, query, param, validationResult } from "express-validator";
 import { PrismaClient } from "@prisma/client";
 import {
@@ -117,7 +117,7 @@ const updateTripValidation = [
 ];
 
 // Middleware para validar erros
-const handleValidationErrors = (req: any, res: any, next: any) => {
+const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     throw new ValidationError("Dados inválidos", errors.array());

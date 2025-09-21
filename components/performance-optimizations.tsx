@@ -324,10 +324,10 @@ export class OptimizedErrorBoundary extends React.Component<
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              Ocorreu um erro inesperado. Tente recarregar a página.
+              Ocorreu um erro inesperado. Tente novamente.
             </p>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Recarregar Página
+            <Button onClick={() => window.location.href = '/'} variant="outline">
+              Voltar ao Início
             </Button>
           </CardContent>
         </Card>

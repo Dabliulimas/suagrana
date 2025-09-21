@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
 import { redisClient } from "@/config/database";
 import { asyncHandler } from "@/middleware/errorHandler";
@@ -148,7 +148,7 @@ function determineOverallStatus(
 // GET /api/health - Health check básico
 router.get(
   "/",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const startTime = Date.now();
 
     // Verificar serviços em paralelo
@@ -204,7 +204,7 @@ router.get(
 // GET /api/health/live - Liveness probe (Kubernetes)
 router.get(
   "/live",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     // Verificação básica se o processo está rodando
     res.status(200).json({
       success: true,
@@ -218,7 +218,7 @@ router.get(
 // GET /api/health/ready - Readiness probe (Kubernetes)
 router.get(
   "/ready",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     try {
       // Verificar se serviços críticos estão prontos
       const [database, redis] = await Promise.all([
@@ -263,7 +263,7 @@ router.get(
 // GET /api/health/metrics - Métricas detalhadas
 router.get(
   "/metrics",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const memUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
 
@@ -303,7 +303,7 @@ router.get(
 // GET /api/health/version - Informações de versão
 router.get(
   "/version",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: {

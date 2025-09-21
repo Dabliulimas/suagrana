@@ -41,9 +41,12 @@ import {
   ArrowDownRight,
   Wallet,
   Eye,
+  RefreshCw,
 } from 'lucide-react';
-import { useTransactions, useAccounts } from '@/contexts/unified-context';
-import { toast } from 'sonner';
+import { useReportsDashboard, useRefreshReports, type ReportFilters } from "@/hooks/use-reports";
+import { useTransactions } from "@/hooks/use-optimized-transactions";
+import { useAccounts } from "@/hooks";
+import { toast } from "sonner";
 import { translateAccountType } from '@/lib/translations';
 
 interface ReportData {
@@ -73,14 +76,48 @@ interface ReportData {
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 
 export default function AdvancedReportsDashboard() {
-  const { transactions } = useTransactions();
-  const { accounts } = useAccounts();
-
   const [selectedPeriod, setSelectedPeriod] = useState('6months');
   const [selectedReport, setSelectedReport] = useState('summary');
+  
+  // Usar hooks do React Query para buscar dados da API do Neon
+  const filters: ReportFilters = useMemo(() => {
+    const now = new Date();
+    let startDate: string;
+    let endDate: string = now.toISOString().split('T')[0];
 
-  // Calcular dados do relatório
-  const reportData = useMemo((): ReportData => {
+    switch (selectedPeriod) {
+      case '1month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        break;
+      case '3months':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
+        break;
+      case '6months':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
+        break;
+      case '1year':
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString().split('T')[0];
+        break;
+      case 'ytd':
+        startDate = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
+    }
+
+    return { startDate, endDate, period: selectedPeriod };
+  }, [selectedPeriod]);
+
+  const { data: reportData, isLoading, error, refetch } = useReportsDashboard(filters);
+  const refreshReports = useRefreshReports();
+  
+  // Fallback para transações e contas (para compatibilidade)
+  const { data: transactionsData } = useTransactions();
+  const transactions = transactionsData?.transactions || [];
+  const { accounts } = useAccounts();
+
+  // Dados calculados localmente como fallback se a API não retornar dados
+  const fallbackReportData = useMemo((): ReportData => {
     const now = new Date();
     let startDate: Date;
 
@@ -182,10 +219,13 @@ export default function AdvancedReportsDashboard() {
     };
   }, [transactions, accounts, selectedPeriod]);
 
+  // Usar dados da API quando disponíveis, senão usar fallback
+  const finalReportData = reportData || fallbackReportData;
+
   const exportReport = async (format: 'pdf' | 'excel' | 'csv') => {
     try {
       const data = {
-        reportData,
+        reportData: finalReportData,
         period: selectedPeriod,
         generatedAt: new Date().toISOString()
       };
@@ -276,6 +316,15 @@ export default function AdvancedReportsDashboard() {
               <SelectItem value="ytd">Ano até hoje</SelectItem>
             </SelectContent>
           </Select>
+
+          <Button 
+            variant="outline" 
+            onClick={refreshReports}
+            disabled={isLoading}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            {isLoading ? 'Atualizando...' : 'Atualizar'}
+          </Button>
           
           <Button variant="outline" onClick={() => exportReport('pdf')}>
             <Download className="w-4 h-4 mr-2" />
@@ -304,7 +353,7 @@ export default function AdvancedReportsDashboard() {
                   Receitas Totais
                 </p>
                 <p className="text-2xl font-bold text-green-700">
-                  R$ {reportData.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {finalReportData.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <ArrowUpRight className="w-8 h-8 text-green-600" />
@@ -320,7 +369,7 @@ export default function AdvancedReportsDashboard() {
                   Despesas Totais
                 </p>
                 <p className="text-2xl font-bold text-red-700">
-                  R$ {reportData.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {finalReportData.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <ArrowDownRight className="w-8 h-8 text-red-600" />
@@ -328,18 +377,18 @@ export default function AdvancedReportsDashboard() {
           </CardContent>
         </Card>
 
-        <Card className={`bg-gradient-to-r ${reportData.netFlow >= 0 ? 'from-blue-50 to-cyan-50 border-blue-200' : 'from-orange-50 to-red-50 border-orange-200'}`}>
+        <Card className={`bg-gradient-to-r ${finalReportData.netFlow >= 0 ? 'from-blue-50 to-cyan-50 border-blue-200' : 'from-orange-50 to-red-50 border-orange-200'}`}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
                   Fluxo Líquido
                 </p>
-                <p className={`text-2xl font-bold ${reportData.netFlow >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
-                  R$ {reportData.netFlow.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <p className={`text-2xl font-bold ${finalReportData.netFlow >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                  R$ {finalReportData.netFlow.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              {reportData.netFlow >= 0 ? (
+              {finalReportData.netFlow >= 0 ? (
                 <TrendingUp className="w-8 h-8 text-blue-600" />
               ) : (
                 <TrendingDown className="w-8 h-8 text-red-600" />
@@ -356,7 +405,7 @@ export default function AdvancedReportsDashboard() {
                   Taxa de Economia
                 </p>
                 <p className="text-2xl font-bold text-purple-700">
-                  {reportData.income > 0 ? ((reportData.netFlow / reportData.income) * 100).toFixed(1) : '0.0'}%
+                  {finalReportData.income > 0 ? ((finalReportData.netFlow / finalReportData.income) * 100).toFixed(1) : '0.0'}%
                 </p>
               </div>
               <Target className="w-8 h-8 text-purple-600" />
@@ -385,9 +434,9 @@ export default function AdvancedReportsDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {reportData.monthlyTrend.length > 0 ? (
+                {finalReportData.monthlyTrend.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={reportData.monthlyTrend}>
+                    <ComposedChart data={finalReportData.monthlyTrend}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -419,11 +468,11 @@ export default function AdvancedReportsDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {reportData.categories.length > 0 ? (
+                {finalReportData.categories.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={reportData.categories}
+                        data={finalReportData.categories}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -432,7 +481,7 @@ export default function AdvancedReportsDashboard() {
                         fill="#8884d8"
                         dataKey="amount"
                       >
-                        {reportData.categories.map((entry, index) => (
+                        {finalReportData.categories.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -462,8 +511,8 @@ export default function AdvancedReportsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {reportData.accountsBreakdown.map((account, index) => {
-                  const totalBalance = reportData.accountsBreakdown.reduce((sum, acc) => sum + acc.balance, 0);
+                {finalReportData.accountsBreakdown.map((account, index) => {
+                  const totalBalance = finalReportData.accountsBreakdown.reduce((sum, acc) => sum + acc.balance, 0);
                   const percentage = totalBalance > 0 ? (account.balance / totalBalance) * 100 : 0;
                   
                   return (
@@ -503,7 +552,7 @@ export default function AdvancedReportsDashboard() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={reportData.monthlyTrend}>
+                <AreaChart data={finalReportData.monthlyTrend}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
@@ -547,7 +596,7 @@ export default function AdvancedReportsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {reportData.categories.map((category, index) => (
+                {finalReportData.categories.map((category, index) => (
                   <div key={index} className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -589,10 +638,10 @@ export default function AdvancedReportsDashboard() {
             <div className="p-4 bg-blue-50 rounded-lg">
               <h4 className="font-semibold text-blue-800 mb-2">💰 Performance Financeira</h4>
               <p className="text-sm text-blue-700">
-                {reportData.netFlow >= 0 ? (
-                  `Excelente! Você teve um saldo positivo de R$ ${reportData.netFlow.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                {finalReportData.netFlow >= 0 ? (
+                  `Excelente! Você teve um saldo positivo de R$ ${finalReportData.netFlow.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                 ) : (
-                  `Atenção: Déficit de R$ ${Math.abs(reportData.netFlow).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}. Revise seus gastos.`
+                  `Atenção: Déficit de R$ ${Math.abs(finalReportData.netFlow).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}. Revise seus gastos.`
                 )}
               </p>
             </div>
@@ -600,8 +649,8 @@ export default function AdvancedReportsDashboard() {
             <div className="p-4 bg-green-50 rounded-lg">
               <h4 className="font-semibold text-green-800 mb-2">📈 Maior Categoria</h4>
               <p className="text-sm text-green-700">
-                {reportData.categories.length > 0 ? (
-                  `${reportData.categories[0].name} representa ${reportData.categories[0].percentage.toFixed(1)}% dos seus gastos`
+                {finalReportData.categories.length > 0 ? (
+                  `${finalReportData.categories[0].name} representa ${finalReportData.categories[0].percentage.toFixed(1)}% dos seus gastos`
                 ) : (
                   'Nenhuma categoria de gastos identificada'
                 )}

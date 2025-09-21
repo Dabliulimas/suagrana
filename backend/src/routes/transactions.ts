@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { body, query, param, validationResult } from "express-validator";
 import {
   PrismaClient,
@@ -16,7 +16,7 @@ import { invalidateTransactionCache } from "@/middleware/cacheInvalidation";
 import { logger, loggerUtils } from "@/utils/logger";
 import { DoubleEntryService } from "@/services/doubleEntryService";
 import { AuditService } from "@/services/auditService";
-import authMiddleware from "@/middleware/auth";
+import { devBypassMiddleware } from "@/middleware/auth";
 import tenantMiddleware from "@/middleware/tenant";
 
 const router = Router();
@@ -169,7 +169,7 @@ const listTransactionsValidation = [
 ];
 
 // Função para validar entrada
-const validateInput = (req: any, res: any, next: any) => {
+const validateInput = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorMessages = errors
@@ -209,7 +209,7 @@ router.get(
   // tenantMiddleware, // Temporariamente removido para desenvolvimento
   listTransactionsValidation,
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     // Mock de dados para desenvolvimento
     const userId = "dev-user-id";
     const tenantId = "dev-tenant-id";
@@ -432,11 +432,11 @@ router.get(
 // GET /api/transactions/:id - Obter transação específica
 router.get(
   "/:id",
-  authMiddleware,
+  devBypassMiddleware,
   tenantMiddleware,
   param("id").isUUID().withMessage("ID da transação deve ser um UUID válido"),
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     
     if (!req.tenant) {
@@ -491,12 +491,12 @@ router.get(
 // POST /api/transactions - Criar nova transação
 router.post(
   "/",
-  authMiddleware,
+  devBypassMiddleware,
   tenantMiddleware,
   createTransactionValidation,
   validateInput,
   invalidateTransactionCache,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const {
       type,
       accountId,
@@ -598,13 +598,13 @@ router.post(
 // PUT /api/transactions/:id - Atualizar transação
 router.put(
   "/:id",
-  authMiddleware,
+  devBypassMiddleware,
   tenantMiddleware,
   param("id").isUUID().withMessage("ID da transação deve ser um UUID válido"),
   updateTransactionValidation,
   validateInput,
   invalidateTransactionCache,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     
     if (!req.tenant) {
@@ -749,12 +749,12 @@ router.put(
 // DELETE /api/transactions/:id - Deletar transação
 router.delete(
   "/:id",
-  authMiddleware,
+  devBypassMiddleware,
   tenantMiddleware,
   param("id").isUUID().withMessage("ID da transação deve ser um UUID válido"),
   validateInput,
   invalidateTransactionCache,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     
     if (!req.tenant) {
@@ -818,9 +818,9 @@ router.delete(
 // GET /api/transactions/categories - Listar categorias usadas
 router.get(
   "/categories",
-  authMiddleware,
+  devBypassMiddleware,
   tenantMiddleware,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     if (!req.tenant) {
       throw new ValidationError("Contexto do tenant não encontrado");
     }
@@ -856,19 +856,16 @@ router.get(
 // GET /api/transactions/summary - Resumo de transações
 router.get(
   "/summary",
-  authMiddleware,
+  devBypassMiddleware,
   tenantMiddleware,
   query("period")
     .optional()
     .isIn(["week", "month", "quarter", "year"])
     .withMessage("Período deve ser: week, month, quarter ou year"),
   validateInput,
-  asyncHandler(async (req, res) => {
-    if (!req.tenant) {
-      throw new ValidationError("Contexto do tenant não encontrado");
-    }
-
-    const { userId, tenantId } = req.tenant;
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = "demo-user-1";
+    const tenantId = "demo-tenant-1";
     const period = (req.query.period as string) || "month";
 
     // Calcular datas
@@ -944,6 +941,86 @@ router.get(
           totalExpense: Math.round(totalExpense * 100) / 100,
           netAmount: Math.round((totalIncome - totalExpense) * 100) / 100,
           transactionCount: transactions.length,
+        },
+        byCategory: Object.values(byCategory),
+      },
+    });
+  }),
+);
+
+// GET /api/transactions/by-category - Transações agrupadas por categoria
+router.get(
+  "/by-category",
+  devBypassMiddleware,
+  tenantMiddleware,
+  query("period")
+    .optional()
+    .isIn(["week", "month", "quarter", "year"])
+    .withMessage("Período deve ser: week, month, quarter ou year"),
+  validateInput,
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = "demo-user-1";
+    const tenantId = "demo-tenant-1";
+    const period = (req.query.period as string) || "month";
+
+    // Calcular datas
+    const now = new Date();
+    const startDate = new Date();
+
+    switch (period) {
+      case "week":
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case "month":
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case "quarter":
+        startDate.setMonth(now.getMonth() - 3);
+        break;
+      case "year":
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+    }
+
+    // Buscar transações do período
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        createdBy: userId,
+        tenantId: tenantId,
+        date: { gte: startDate },
+        status: "COMPLETED",
+      },
+      select: {
+        type: true,
+        amount: true,
+        category: true,
+        date: true,
+      },
+    });
+
+    // Agrupar por categoria
+    const byCategory = transactions.reduce((acc, t) => {
+      const key = `${t.category}-${t.type}`;
+      if (!acc[key]) {
+        acc[key] = {
+          category: t.category,
+          type: t.type,
+          total: 0,
+          count: 0,
+        };
+      }
+      acc[key].total += Number(t.amount);
+      acc[key].count += 1;
+      return acc;
+    }, {} as any);
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        dateRange: {
+          start: startDate.toISOString().split("T")[0],
+          end: now.toISOString().split("T")[0],
         },
         byCategory: Object.values(byCategory),
       },

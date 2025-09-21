@@ -1,9 +1,5 @@
 import {
   PrismaClient,
-  TransactionType,
-  TransactionStatus,
-  InvestmentType,
-  GoalStatus,
 } from "@prisma/client";
 import { logger } from "../utils/logger";
 import { accountService } from "./accountService";
@@ -47,14 +43,14 @@ export interface DashboardData {
       percentage: number;
     }>;
     investmentAllocation: Array<{
-      type: InvestmentType;
+      type: string;
       value: number;
       percentage: number;
     }>;
   };
   recentTransactions: Array<{
     id: string;
-    type: TransactionType;
+    type: string;
     amount: number;
     description: string;
     category: string;
@@ -160,7 +156,7 @@ export interface InvestmentReport {
     id: string;
     symbol: string;
     name: string;
-    type: InvestmentType;
+    type: string;
     sector?: string;
     quantity: number;
     averagePrice: number;
@@ -174,7 +170,7 @@ export interface InvestmentReport {
   }>;
   allocation: {
     byType: Array<{
-      type: InvestmentType;
+      type: string;
       count: number;
       totalInvested: number;
       currentValue: number;
@@ -242,7 +238,7 @@ export interface GoalsReport {
     targetDate: Date;
     category?: string;
     priority: number;
-    status: GoalStatus;
+    status: string;
     progressPercentage: number;
     remainingAmount: number;
     daysRemaining: number;
@@ -257,7 +253,7 @@ export interface GoalsReport {
     totalSaved: number;
   };
   byStatus: Array<{
-    status: GoalStatus;
+    status: string;
     count: number;
     totalTargetAmount: number;
     totalCurrentAmount: number;
@@ -360,13 +356,20 @@ class ReportService {
       const last30Days = new Date();
       last30Days.setDate(last30Days.getDate() - 30);
 
-      const dailyCashFlow =
+      const dailyCashFlowData =
         await transactionService.getTransactionSummaryByPeriod(
           userId,
           last30Days,
           new Date(),
           "day",
         );
+
+      const dailyCashFlow = dailyCashFlowData.map(item => ({
+        date: item.period,
+        income: item.income,
+        expense: item.expense,
+        net: item.net,
+      }));
 
       // Buscar transações recentes
       const recentTransactionsData = await transactionService.getTransactions(

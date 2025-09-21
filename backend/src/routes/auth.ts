@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import { body, validationResult } from "express-validator";
 import { PrismaClient } from "@prisma/client";
@@ -44,7 +44,7 @@ const loginValidation = [
 // Removido refreshTokenValidation pois agora usamos cookies
 
 // Função para validar entrada
-const validateInput = (req: any, res: any, next: any) => {
+const validateInput = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorMessages = errors
@@ -61,7 +61,7 @@ router.post(
   "/register",
   registerValidation,
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { name, email, password } = req.body;
 
     // Verificar se usuário já existe
@@ -135,7 +135,7 @@ router.post(
   "/login",
   loginValidation,
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     // Buscar usuário
@@ -212,7 +212,7 @@ router.post(
 // POST /api/auth/refresh
 router.post(
   "/refresh",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const refreshToken = req.cookies?.['sua-grana-refresh-token'];
 
     if (!refreshToken) {
@@ -297,7 +297,7 @@ router.post(
 router.post(
   "/logout",
   authMiddleware,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const token = req.cookies?.['sua-grana-token'];
 
     if (token) {
@@ -330,7 +330,7 @@ router.post(
 router.get(
   "/me",
   authMiddleware,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
       select: {
@@ -396,7 +396,7 @@ router.put(
       ),
   ],
   validateInput,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user!.id;
 
@@ -453,6 +453,85 @@ router.put(
     res.json({
       success: true,
       message: "Senha alterada com sucesso",
+    });
+  }),
+);
+
+// PUT /api/auth/forgot-password
+router.put(
+  "/forgot-password",
+  [body("email").isEmail().normalizeEmail().withMessage("Email inválido")],
+  validateInput,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+
+    // Buscar usuário
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      loggerUtils.logAuth(
+        "login_attempt_invalid_email",
+        undefined,
+        email,
+        false,
+      );
+      throw new AuthenticationError("Email ou senha inválidos");
+    }
+
+    // Verificar senha
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      loggerUtils.logAuth(
+        "login_attempt_invalid_password",
+        user.id,
+        email,
+        false,
+      );
+      throw new AuthenticationError("Email ou senha inválidos");
+    }
+
+    // Gerar tokens
+    const tokens = generateTokens(user.id, user.email);
+
+    // Definir cookies seguros
+    res.cookie('sua-grana-token', tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+    });
+
+    res.cookie('sua-grana-refresh-token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
+    });
+
+    loggerUtils.logAuth("login_success", user.id, user.email, true);
+
+    res.json({
+      success: true,
+      message: "Login realizado com sucesso",
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          createdAt: user.createdAt,
+        },
+        accessToken: tokens.accessToken,
+      },
     });
   }),
 );

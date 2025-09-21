@@ -122,7 +122,7 @@ export function PrivacyConsentModal({
         toast.success(`Dados excluídos: ${result.deleted.join(", ")}`);
         // Logout user after data deletion
         authService.clearCurrentSession();
-        window.location.reload();
+        window.location.href = '/login';
       } else {
         toast.error(result.error || "Erro ao excluir dados");
       }

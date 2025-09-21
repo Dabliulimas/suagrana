@@ -288,9 +288,9 @@ export function InvestmentOperationModal({
       onOpenChange(false);
       resetForm();
       
-      // Recarregar a página para atualizar os dados
+      // Fechar modal após sucesso
       setTimeout(() => {
-        window.location.reload();
+        onClose();
       }, 1000);
       
     } catch (error) {

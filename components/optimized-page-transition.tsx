@@ -153,10 +153,10 @@ export function OptimizedPageTransition({
         <h3 className="text-lg font-semibold mb-2">Erro ao carregar</h3>
         <p className="text-muted-foreground mb-4">{error}</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => window.location.href = '/'}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
-          Tentar novamente
+          Voltar ao Início
         </button>
       </motion.div>
     );

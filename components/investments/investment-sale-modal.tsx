@@ -222,11 +222,6 @@ export function InvestmentSaleModal({ open, onOpenChange }: InvestmentSaleModalP
 
       onOpenChange(false);
 
-      // Recarregar a página para atualizar os dados
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-
     } catch (error) {
       console.error("Erro ao registrar venda:", error);
       toast.error("Erro ao registrar venda. Tente novamente.");

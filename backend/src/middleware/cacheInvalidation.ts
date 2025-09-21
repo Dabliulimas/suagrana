@@ -240,7 +240,7 @@ export function cacheHeadersMiddleware(
  * Middleware para verificar cache condicional (ETag/If-Modified-Since)
  */
 export function conditionalCacheMiddleware() {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const ifNoneMatch = req.get("If-None-Match");
     const ifModifiedSince = req.get("If-Modified-Since");
 
@@ -248,7 +248,8 @@ export function conditionalCacheMiddleware() {
     if (ifNoneMatch) {
       const etag = res.get("ETag");
       if (etag && ifNoneMatch === etag) {
-        return res.status(304).end();
+        res.status(304).end();
+        return;
       }
     }
 
@@ -260,7 +261,8 @@ export function conditionalCacheMiddleware() {
         const lastModifiedDate = new Date(lastModified);
 
         if (lastModifiedDate <= ifModifiedSinceDate) {
-          return res.status(304).end();
+          res.status(304).end();
+          return;
         }
       }
     }
